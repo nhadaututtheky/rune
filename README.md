@@ -23,7 +23,7 @@ Mesh:      A ↔ B ↔ C             (B fails = A reaches C via D→E)
 ```bash
 # Via Claude Code plugin marketplace
 /plugin marketplace add rune-kit/rune
-/plugin install rune@rune
+/plugin install rune@rune-kit
 ```
 
 Or clone directly:
