@@ -18,6 +18,20 @@ Mesh:      A ↔ B ↔ C             (B fails = A reaches C via D→E)
            D ↔ E ↔ F
 ```
 
+## Install
+
+```bash
+# Via Claude Code plugin marketplace
+/plugin marketplace add rune-kit/rune
+/plugin install rune@rune
+```
+
+Or clone directly:
+
+```bash
+git clone https://github.com/rune-kit/rune
+```
+
 ## Quick Start
 
 ```bash
