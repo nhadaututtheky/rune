@@ -1,6 +1,6 @@
 ---
 name: journal
-description: Rescue-specific state tracking across sessions. Manages RESCUE-STATE.md, module-status.json, dependency graphs, and Architecture Decision Records.
+description: Persistent state tracking and Architecture Decision Records across sessions. Manages progress state, module health, dependency graphs, and ADRs for any workflow.
 metadata:
   author: runedev
   version: "0.2.0"
@@ -13,12 +13,12 @@ metadata:
 
 ## Purpose
 
-Rescue-specific state tracking across sessions. Journal manages the persistent state files that allow rescue workflows to span multiple sessions without losing progress. Separate from session-bridge which handles general context — journal is specifically for rescue operations.
+Persistent state tracking and Architecture Decision Records across sessions. Journal manages the state files that allow any workflow to span multiple sessions without losing progress — rescue operations, feature development, deploy decisions, or audit findings. Separate from session-bridge which handles general context injection — journal writes durable, human-readable state that survives compaction.
 
 ## Triggers
 
-- Called by rescue skills after each phase completion
-- Auto-trigger: after surgeon completes a module
+- Called by any skill needing decision persistence or progress tracking
+- Auto-trigger: after surgeon completes a module, after deploy, after audit phases
 
 ## Calls (outbound)
 
@@ -29,6 +29,9 @@ None — pure L3 state management utility.
 - `surgeon` (L2): update progress after each surgery session
 - `rescue` (L1): read state for rescue dashboard
 - `autopsy` (L2): save initial health assessment
+- `cook` (L1): record key architectural decisions made during feature development
+- `deploy` (L2): record deploy decision, rollback plan, and post-deploy status
+- `audit` (L2): save AUDIT-REPORT.md and record health trend entry
 
 ## Files Managed
 
@@ -74,7 +77,7 @@ Use `Edit` to update the relevant lines in `RESCUE-STATE.md` (current phase, cur
 
 ### Step 3 — Record decisions
 
-For each architectural decision or trade-off made during this session:
+For each architectural decision or trade-off made during this session (applies to any workflow — feature development, deploy, rescue, audit):
 
 1. Generate an ADR filename: `.rune/adr/ADR-[NNN]-[slug].md` where NNN is the next sequential number
 2. Use `Write` to create the ADR file with this format:
@@ -84,19 +87,20 @@ For each architectural decision or trade-off made during this session:
 
 **Date**: [YYYY-MM-DD]
 **Status**: Accepted
-**Module**: [affected module]
+**Workflow**: [rescue | cook | deploy | audit | other]
+**Scope**: [affected module, feature, or system area]
 
 ## Context
-[Why this decision was needed]
+[Why this decision was needed — what problem or trade-off prompted it]
 
 ## Decision
-[What was decided]
+[What was decided — be specific, not "we chose X" but "we chose X over Y"]
 
 ## Rationale
-[Why this approach over alternatives]
+[Why this approach over alternatives — cite specific constraints or evidence]
 
 ## Consequences
-[Impact on files/modules/future work]
+[Impact on files/modules/future work — include rollback path if relevant]
 ```
 
 ### Step 4 — Update dependency graph
@@ -152,6 +156,26 @@ Emit the journal update summary to the calling skill.
 1. MUST record decisions with rationale — not just "decided to use X"
 2. MUST timestamp all entries
 3. MUST NOT log sensitive data (secrets, tokens, credentials)
+4. MUST work for any workflow — never require rescue-specific fields to be present
+
+## Sharp Edges
+
+Known failure modes for this skill. Check these before declaring done.
+
+| Failure Mode | Severity | Mitigation |
+|---|---|---|
+| ADR written from memory instead of actual session events | HIGH | Only record decisions that were explicitly made in this session — don't reconstruct |
+| RESCUE-STATE.md initialized without content when called from non-rescue workflows | MEDIUM | If caller is not rescue/surgeon, skip RESCUE-STATE.md initialization — use progress.md instead |
+| Overwriting human-written ADR content on re-run | CRITICAL | MUST check if ADR-[NNN].md exists before writing — never overwrite, increment NNN |
+| Empty ADR Rationale field ("decided to use X") | MEDIUM | Constraint 1 blocks this — re-prompt for rationale before writing |
+
+## Done When
+
+- All decisions from the session recorded as ADR files with rationale
+- Progress state updated (module status, phase, or deploy event as appropriate)
+- Dependency graph updated if module relationships changed
+- Journal Update summary emitted to calling skill
+- No existing ADR files overwritten
 
 ## Cost Profile
 

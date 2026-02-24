@@ -40,7 +40,8 @@ project/
     ├── conventions.md     # Detected patterns & style
     ├── decisions.md       # Empty, ready for session-bridge
     ├── progress.md        # Empty, ready for session-bridge
-    └── session-log.md     # Empty, ready for session-bridge
+    ├── session-log.md     # Empty, ready for session-bridge
+    └── DEVELOPER-GUIDE.md # Human-readable onboarding for new developers
 ```
 
 ## Executable Steps
@@ -92,7 +93,48 @@ Use `Write` to create each file:
 - `.rune/progress.md` — create with header `# Progress Log` and one placeholder entry
 - `.rune/session-log.md` — create with header `# Session Log` and current date as first entry
 
-### Step 6 — Commit
+### Step 6b — Generate DEVELOPER-GUIDE.md
+
+Use the data from Steps 2–3 to generate `.rune/DEVELOPER-GUIDE.md` — a human-readable onboarding guide for new team members joining the project. This is NOT AI context. This is plain English for humans.
+
+Use `Write` to create `.rune/DEVELOPER-GUIDE.md` with this template:
+
+```markdown
+# Developer Guide: [Project Name]
+
+## What This Does
+[2 sentences max. What problem does this project solve? Who uses it?]
+
+## Quick Setup
+[Copy-paste commands to get from zero to running locally]
+```bash
+# Install dependencies
+[detected command]
+# Run development server
+[detected command]
+# Run tests
+[detected command]
+```
+
+## Key Files
+[5–10 most important files with one-line description each]
+- `[path]` — [what it does]
+
+## How to Contribute
+1. Fork or branch from main
+2. Make changes, run tests: `[test command]`
+3. Open a PR — describe what and why
+
+## Common Issues
+[Top 3 "it doesn't work" situations with fixes. Only include issues you can infer from the codebase — e.g., missing .env, wrong Node version, database not running]
+
+## Who to Ask
+[If git log reveals consistent contributors, list them. Otherwise omit this section.]
+```
+
+If `.rune/DEVELOPER-GUIDE.md` already exists, skip and log **INFO**: "Skipped existing .rune/DEVELOPER-GUIDE.md — manual content preserved."
+
+### Step 7 — Commit
 Use `Bash` to stage and commit the generated files:
 ```bash
 git add CLAUDE.md .rune/ && git commit -m "chore: initialize rune project context"
@@ -154,6 +196,7 @@ If any of the `.rune/` files already exist, do not overwrite them (they may cont
 - .rune/decisions.md (initialized)
 - .rune/progress.md (initialized)
 - .rune/session-log.md (initialized)
+- .rune/DEVELOPER-GUIDE.md (human onboarding guide)
 
 ### Skipped (already exist)
 - [list of files not overwritten]
@@ -171,6 +214,26 @@ If any of the `.rune/` files already exist, do not overwrite them (they may cont
 3. MUST include: build commands, test commands, lint commands, project structure
 4. MUST NOT include obvious/generic advice ("write clean code", "use meaningful names")
 5. MUST verify generated commands actually work by running them
+6. MUST NOT overwrite existing .rune/ files — always preserve human-written content
+
+## Sharp Edges
+
+Known failure modes for this skill. Check these before declaring done.
+
+| Failure Mode | Severity | Mitigation |
+|---|---|---|
+| CLAUDE.md generated from README alone (no file scan) | CRITICAL | Step 1 MUST invoke scout — never skip actual file scanning |
+| DEVELOPER-GUIDE.md contains generic placeholder text not derived from project | HIGH | Every section must reference actual detected commands, files, and patterns — no generic advice |
+| Overwriting existing .rune/ files with manual content | CRITICAL | Check file existence before every Write — skip and log INFO if exists |
+| Common Issues section fabricated (no actual issues detected) | MEDIUM | Only list issues inferable from codebase (missing .env, Node version, etc.) — omit section if none found |
+
+## Done When
+
+- CLAUDE.md written (or merged) with all detected tech stack fields populated
+- .rune/ directory initialized with conventions, decisions, progress, session-log
+- .rune/DEVELOPER-GUIDE.md written with setup commands from actual scan
+- All generated commands verified to exist in package.json/Makefile/etc.
+- Onboard Report emitted with Generated + Skipped + Observations sections
 
 ## Cost Profile
 

@@ -61,7 +61,19 @@ Thresholds:
 - 500ms–2000ms → ACCEPTABLE
 - > 2000ms → SLOW (flag as alert)
 
-### Step 4: Error Detection
+### Step 4: Performance Signal Analysis
+
+After collecting response times from Step 3, analyze for patterns that indicate root causes:
+
+- **Consistently 2x+ slower than baseline** (or > 2000ms with no apparent load): flag with `PERF_WARN — investigate N+1 query or missing DB index`
+- **Endpoint cluster degradation**: if 3+ endpoints share a pattern (all auth endpoints slow, all /api/* slow): flag `PERF_WARN — connection pool saturation likely`
+- **Spike after deploy**: compare with previous watchdog run if available — if an endpoint that was FAST is now SLOW, flag `PERF_REGRESSION — correlate with recent git diff`
+
+If no previous baseline exists, skip spike detection and note `INFO: no baseline — first run`.
+
+Output performance signals into a `perf_signals` list (separate from `alerts`).
+
+### Step 5: Error Detection
 
 Scan responses for problems:
 - 4xx/5xx HTTP codes → log endpoint + status code
@@ -71,7 +83,7 @@ Scan responses for problems:
 
 Collect all flagged issues into an `alerts` list.
 
-### Step 5: Report
+### Step 6: Report
 
 Output the following report structure:
 
@@ -90,14 +102,18 @@ Output the following report structure:
 ### Alerts
 - [CRITICAL|WARNING] [endpoint] — [reason]
 
+### Performance Signals
+- [PERF_WARN|PERF_REGRESSION|INFO] [endpoint] — [diagnosis]
+
 ### Summary
 - Total endpoints checked: [n]
 - Healthy: [n]
 - Alerts: [n]
+- Perf Signals: [n]
 - Overall status: ALL_HEALTHY | DEGRADED | DOWN
 ```
 
-If no alerts: output `Overall status: ALL_HEALTHY`.
+If no alerts and no perf signals: output `Overall status: ALL_HEALTHY`.
 
 ## Output Format
 
@@ -121,6 +137,27 @@ If no alerts: output `Overall status: ALL_HEALTHY`.
 1. MUST report with specific metrics — not vague "performance seems slow"
 2. MUST include baseline comparison when available
 3. MUST NOT generate false alarms — precision over recall
+4. MUST separate perf signals from error alerts — they are different severity channels
+5. MUST NOT call `perf` skill — watchdog is a detector, not a diagnoser
+
+## Sharp Edges
+
+Known failure modes for this skill. Check these before declaring done.
+
+| Failure Mode | Severity | Mitigation |
+|---|---|---|
+| curl timeout treated as slow (not unreachable) | HIGH | Non-zero curl exit code = UNREACHABLE, not a response time measurement |
+| PERF_REGRESSION reported without baseline | MEDIUM | Only flag regression if a previous run exists — otherwise INFO: first run |
+| All endpoints flagged SLOW because test env is slow | MEDIUM | Note environment context — add `ENV: non-production detected` if URL contains dev/staging/localhost |
+| Perf signal without actionable diagnosis | LOW | Every PERF_WARN must include a hypothesis (N+1, pool saturation, etc.) |
+
+## Done When
+
+- All specified endpoints checked (HTTP status + response time measured)
+- All 4xx/5xx → `alerts` list, all SLOW → `alerts` list
+- Performance patterns analyzed → `perf_signals` list (or INFO: first run)
+- Structured Watchdog Report emitted with Alerts + Performance Signals + Summary
+- Overall status is ALL_HEALTHY, DEGRADED, or DOWN (never ambiguous)
 
 ## Cost Profile
 
