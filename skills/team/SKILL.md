@@ -234,6 +234,23 @@ Mark todo[4] `completed`.
 
 ---
 
+## Constraints
+
+1. MUST NOT launch more than 3 parallel agents — batch if more streams exist
+2. MUST define clear scope boundaries per agent before dispatch — no overlapping file ownership
+3. MUST resolve all merge conflicts before declaring completion — no "fix later"
+4. MUST NOT let agents modify the same file — split by file ownership
+5. MUST collect and review all agent outputs before merging — no blind merge
+6. MUST NOT skip the integration verification after merge
+
+## Mesh Gates
+
+| Gate | Requires | If Missing |
+|------|----------|------------|
+| Scope Gate | Each agent has explicit file ownership list | Define boundaries before dispatch |
+| Conflict Gate | Zero merge conflicts after integration | Resolve all conflicts, re-verify |
+| Verification Gate | All tests pass after merge | Fix regressions before completion |
+
 ## Output Format
 
 ```

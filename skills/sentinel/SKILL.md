@@ -128,6 +128,16 @@ If status is BLOCK, output the report and STOP. Do not hand off to commit. The c
 BLOCKED — 2 critical findings must be resolved before commit.
 ```
 
+## Constraints
+
+1. MUST scan ALL files in scope — not just the file the user pointed at
+2. MUST check: hardcoded secrets, SQL injection, XSS, CSRF, auth bypass, path traversal
+3. MUST list every file checked in the report — "no issues found" requires proof of what was examined
+4. MUST NOT say "the framework handles security" as justification for skipping checks
+5. MUST NOT say "this is an internal tool" as justification for reduced security
+6. MUST flag any .env, credentials, or key files found in git-tracked directories
+7. MUST use opus model for security-critical code (auth, crypto, payments)
+
 ## Cost Profile
 
 ~1000-3000 tokens input, ~500-1000 tokens output. Sonnet default, opus for deep audit on critical findings.

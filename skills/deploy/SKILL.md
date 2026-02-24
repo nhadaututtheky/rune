@@ -128,6 +128,14 @@ Output the deploy report:
 
 If any step failed, include the error output and recommended next action.
 
+## Constraints
+
+1. MUST verify tests + sentinel pass before deploying — non-negotiable
+2. MUST have rollback strategy documented before production deploy
+3. MUST verify deploy is live and responding before declaring success
+4. MUST NOT deploy with known CRITICAL security findings
+5. MUST log deploy metadata (version, timestamp, commit hash)
+
 ## Cost Profile
 
 ~1000-3000 tokens input, ~500-1000 tokens output. Sonnet. Most time in build/deploy commands.

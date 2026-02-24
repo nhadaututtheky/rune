@@ -152,6 +152,13 @@ Only after verification passes, declare the safety net complete.
 Safe to proceed with: `rune:surgeon` targeting [module]
 ```
 
+## Constraints
+
+1. MUST write characterization tests that pass on CURRENT code before any refactoring
+2. MUST NOT proceed to surgery if characterization tests fail — the safety net is broken
+3. MUST cover critical paths identified by autopsy — not just easy-to-test functions
+4. MUST verify tests are meaningful — tests that always pass regardless of code are useless
+
 ## Cost Profile
 
 ~2000-5000 tokens input, ~1000-2000 tokens output. Sonnet for test writing quality.

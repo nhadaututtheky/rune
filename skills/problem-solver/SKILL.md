@@ -3,7 +3,7 @@ name: problem-solver
 description: Structured reasoning frameworks for complex problems. Uses 5 Whys, Fishbone, First Principles, and other analytical methods.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L3
   model: sonnet
   group: reasoning
@@ -13,11 +13,7 @@ metadata:
 
 ## Purpose
 
-Structured reasoning for complex problems that resist straightforward solutions. Applies analytical frameworks like 5 Whys, Fishbone, and First Principles to break down problems systematically. Called when debug or brainstorm needs deeper reasoning.
-
-## Triggers
-
-- Called by L2 skills when standard analysis is insufficient
+Structured reasoning utility for problems that resist straightforward analysis. Receives a problem statement, selects the appropriate analytical framework, applies it step-by-step with evidence, and returns ranked solutions. Stateless — no memory between calls.
 
 ## Calls (outbound)
 
@@ -28,41 +24,118 @@ None — pure L3 reasoning utility.
 - `debug` (L2): complex bugs that resist standard debugging
 - `brainstorm` (L2): structured frameworks for creative exploration
 
-## Frameworks Available
+## Execution
+
+### Input
 
 ```
-5 WHYS          — Drill to root cause by asking "why?" iteratively
-FISHBONE        — Categorize causes: People, Process, Technology, Environment
-FIRST PRINCIPLES — Strip assumptions, rebuild from fundamentals
-SCAMPER         — Substitute, Combine, Adapt, Modify, Put to use, Eliminate, Reverse
-IMPACT MATRIX   — Effort vs Impact prioritization
+problem: string         — clear statement of the problem to analyze
+context: string         — (optional) relevant background, constraints, symptoms observed
+goal: string            — (optional) desired outcome or success criteria
 ```
 
-## Workflow
+### Step 1 — Receive Problem Statement
 
-1. Receive problem statement from calling skill (debug / brainstorm / plan)
-2. Select reasoning framework best suited to the problem type
-3. Apply structured analysis — iterate through framework steps with evidence
-4. Generate root causes and candidate solutions from the reasoning chain
-5. Return ranked recommendations with confidence level and next action
+Read the `problem` and `context` inputs. Restate the problem in one sentence to confirm understanding before applying any framework. If the problem statement is ambiguous, identify the most likely interpretation and state it explicitly.
+
+### Step 2 — Select Framework
+
+Choose the framework based on what is unknown about the problem:
+
+| Situation | Framework |
+|-----------|-----------|
+| Root cause is unknown — symptoms are clear | **5 Whys** |
+| Multiple potential causes from different domains | **Fishbone (Ishikawa)** |
+| Standard assumptions need challenging | **First Principles** |
+| Creative options needed for a known problem | **SCAMPER** |
+| Must prioritize among known solutions | **Impact Matrix** |
+
+State which framework was selected and why.
+
+### Step 3 — Apply Framework
+
+Execute the selected framework with discipline:
+
+**5 Whys:**
+- Why did [problem] occur? → [answer 1]
+- Why did [answer 1] occur? → [answer 2]
+- Why did [answer 2] occur? → [answer 3]
+- Why did [answer 3] occur? → [answer 4]
+- Why did [answer 4] occur? → [root cause]
+- Stop at 5 or when root cause cannot be decomposed further
+
+**Fishbone (Ishikawa):**
+- Categorize potential causes into: People, Process, Technology, Environment
+- Under each category, list contributing factors with evidence
+- Identify which category has the highest concentration of causes
+
+**First Principles:**
+- List all current assumptions about the problem
+- Challenge each assumption: "Is this actually true?"
+- Strip to fundamental facts that cannot be disputed
+- Rebuild solution from those fundamentals upward
+
+**SCAMPER:**
+- Substitute: what can be replaced?
+- Combine: what can be merged?
+- Adapt: what can be adjusted from another context?
+- Modify/Magnify: what can be scaled or emphasized?
+- Put to other use: what can serve a different purpose?
+- Eliminate: what can be removed?
+- Reverse/Rearrange: what can be flipped?
+
+**Impact Matrix:**
+- List all candidate solutions
+- Score each on Impact (1-5) and Effort (1-5)
+- Rank by Impact/Effort ratio descending
+
+### Step 4 — Generate Solutions
+
+From the framework output, derive 2-3 actionable solutions. For each solution:
+- Describe what to do concretely
+- Estimate impact: high / medium / low
+- Estimate effort: high / medium / low
+- State any preconditions or risks
+
+Rank solutions by impact/effort ratio.
+
+### Step 5 — Report
+
+Return the full analysis in the output format below.
+
+## Constraints
+
+- Never skip the framework — the structure is the value of this skill
+- Use Sonnet, not Haiku — reasoning depth matters here
+- If problem is underspecified, state assumptions explicitly before proceeding
+- Do not produce more than 3 recommended solutions — prioritize quality over quantity
 
 ## Output Format
 
 ```
-## Analysis: [Problem]
-- **Framework**: [chosen framework]
+## Analysis: [Problem Statement]
+- **Framework**: [chosen framework and reason]
 - **Confidence**: high | medium | low
 
 ### Reasoning Chain
-1. [step with evidence]
-2. [step with evidence]
+1. [step with evidence or reasoning]
+2. [step with evidence or reasoning]
+3. [step with evidence or reasoning]
 ...
 
-### Root Cause / Conclusion
-[finding]
+### Root Cause / Core Finding
+[what the framework reveals as the fundamental issue or conclusion]
 
-### Recommended Action
-[what to do next]
+### Recommended Solutions (ranked)
+1. **[Solution Name]** — Impact: high/medium/low | Effort: high/medium/low
+   [concrete description of what to do]
+2. **[Solution Name]** — Impact: high/medium/low | Effort: high/medium/low
+   [concrete description of what to do]
+3. **[Solution Name]** — Impact: high/medium/low | Effort: high/medium/low
+   [concrete description of what to do]
+
+### Next Action
+[single most important immediate step]
 ```
 
 ## Cost Profile

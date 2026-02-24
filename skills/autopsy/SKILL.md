@@ -3,7 +3,7 @@ name: autopsy
 description: Full codebase health assessment. Analyzes complexity, dependencies, dead code, tech debt, and git hotspots. Produces a health score and rescue plan.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: opus
   group: rescue
@@ -15,11 +15,10 @@ metadata:
 
 Full codebase health assessment for legacy projects. Autopsy analyzes complexity, dependency coupling, dead code, tech debt, and git hotspots to produce a health score per module and a prioritized rescue plan. Uses opus for deep analysis quality.
 
-## Triggers
+## Called By (inbound)
 
-- Called by `rescue` Phase 0 RECON
-- Called by `onboard` when project appears messy
-- `/rune autopsy` — manual health assessment
+- `rescue` (L1): Phase 0 RECON — assess damage before refactoring
+- `onboard` (L2): when project appears messy during onboarding
 
 ## Calls (outbound)
 
@@ -28,18 +27,111 @@ Full codebase health assessment for legacy projects. Autopsy analyzes complexity
 - `trend-scout` (L3): compare against current best practices
 - `journal` (L3): record health assessment findings
 
-## Called By (inbound)
+## Execution Steps
 
-- `rescue` (L1): Phase 0 RECON — assess damage before refactoring
+### Step 1 — Structure scan
 
-## Workflow
+Call `rune:scout` with a request for a full project map. Ask scout to return:
+- All source files with LOC counts
+- Entry points and main modules
+- Import/dependency graph (who imports who)
+- Test files and their coverage targets
+- Config files (tsconfig, eslint, package.json, etc.)
 
-1. **Structure scan** — scout maps files, LOC, entry points
-2. **Complexity analysis** — cyclomatic complexity > 10, nesting > 4 levels
-3. **Dependency map** — coupling analysis, circular dependencies (Mermaid diagram)
-4. **Health scoring** — 1-100 per module using 25+ factors
-5. **Archaeology** — git log hotspots, git blame age, dead code detection
-6. **Report** — RESCUE-REPORT.md with prioritized findings
+### Step 2 — Module analysis
+
+For each major module identified by scout, use `Read` to open the file and assess:
+- LOC (flag anything over 500 as a god file)
+- Function count and average function length
+- Maximum nesting depth (flag > 4 levels)
+- Cyclomatic complexity signals (deep conditionals, many branches)
+- Test file presence and estimated coverage
+
+Record findings per module in a working table.
+
+### Step 3 — Health scoring
+
+Score each module 0-100 across six dimensions:
+
+| Dimension | Weight | Scoring criteria |
+|---|---|---|
+| Complexity | 20% | Cyclomatic < 5 = 100, 5-10 = 70, 10-20 = 40, > 20 = 0 |
+| Test coverage | 25% | > 80% = 100, 50-80% = 60, 20-50% = 30, < 20% = 0 |
+| Documentation | 15% | README + inline comments = 100, partial = 50, none = 0 |
+| Dependencies | 20% | Low coupling = 100, medium = 60, high/circular = 0 |
+| Code smells | 10% | No god files, no deep nesting = 100, each violation -20 |
+| Maintenance | 10% | Regular commits = 100, stale > 6 months = 50, untouched > 1yr = 0 |
+
+Compute weighted score per module. Assign risk tier:
+- 80-100 = healthy (green)
+- 60-79 = watch (yellow)
+- 40-59 = at-risk (orange)
+- 0-39 = critical (red)
+
+### Step 4 — Risk assessment
+
+Use `Bash` to gather git archaeology data:
+
+```bash
+# Most changed files (hotspots)
+git log --format=format: --name-only | sort | uniq -c | sort -rg | head -20
+
+# Files not touched in over a year
+git log --before="1 year ago" --format="%H" | head -1 | xargs -I{} git diff --name-only {}..HEAD
+
+# Authors per file (high author count = high churn risk)
+git log --format="%an" -- <file> | sort -u | wc -l
+```
+
+Identify:
+- Circular dependencies (A imports B, B imports A)
+- God files (> 500 LOC with many importers)
+- Hotspot files (changed most often = highest bug density)
+- Dead files (no importers, no recent commits)
+
+### Step 5 — Generate RESCUE-REPORT.md
+
+Use `Write` to save `RESCUE-REPORT.md` at the project root with this structure:
+
+```markdown
+# Rescue Report: [Project Name]
+Generated: [date]
+
+## Overall Health: [score]/100
+
+## Module Health
+| Module | Score | Complexity | Coverage | Coupling | Risk | Priority |
+|--------|-------|-----------|----------|----------|------|----------|
+| [name] | [n]   | [low/med/high] | [%] | [low/med/high] | [tier] | [1-N] |
+
+## Dependency Graph
+[Mermaid diagram of module coupling]
+
+## Surgery Queue (Priority Order)
+1. [module] — Score: [n] — [primary reason] — Suggested pattern: [pattern]
+2. ...
+
+## Git Archaeology
+- Hotspot files: [list with change frequency]
+- Stale files: [list with age]
+- Dead code candidates: [list]
+
+## Immediate Actions (Before Surgery)
+- [action 1]
+- [action 2]
+```
+
+Call `rune:journal` to record that autopsy ran, the overall health score, and the surgery queue.
+
+### Step 6 — Report
+
+Output a summary of the findings:
+
+- Overall health score and tier
+- Count of critical, at-risk, watch, and healthy modules
+- Top 3 worst modules with scores and recommended patterns
+- Confirm RESCUE-REPORT.md was saved
+- Recommended next step: call `rune:safeguard` on the top-priority module
 
 ## Health Score Factors
 
@@ -56,26 +148,28 @@ DEAD CODE       — unused exports, unreachable branches
 
 ```
 ## Autopsy Report: [Project Name]
-- **Overall Health**: [score]/100
-- **Modules Assessed**: [count]
-- **Critical Issues**: [count]
 
-### Module Health
-| Module | Health | Complexity | Coupling | Tests | Priority |
-|--------|--------|-----------|----------|-------|----------|
-| auth | 72 | medium | low | 85% | low |
-| payments | 34 | high | high | 12% | critical |
+### Overall Health: [score]/100 — [tier: healthy | watch | at-risk | critical]
 
-### Dependency Graph
-[Mermaid diagram]
+### Module Summary
+| Module | Score | Risk | Priority |
+|--------|-------|------|----------|
+| [name] | [n]   | [tier] | [1-N] |
 
-### Rescue Priority
-1. [module] — [reason] — [suggested pattern]
+### Top Issues
+1. [module] — [primary finding] — Recommended pattern: [pattern]
 
-### Git Archaeology
-- Hotspot: [file] ([change frequency])
-- Oldest untouched: [file] ([age])
+### Next Step
+Run rune:safeguard on [top-priority module] before any refactoring.
 ```
+
+## Constraints
+
+1. MUST scan actual code metrics — not estimate from file names
+2. MUST produce quantified health score — not vague "needs improvement"
+3. MUST identify specific modules with highest technical debt — ranked by severity
+4. MUST NOT recommend refactoring everything — prioritize by impact
+5. MUST check: test coverage, cyclomatic complexity, dependency freshness, dead code
 
 ## Cost Profile
 

@@ -3,7 +3,7 @@ name: docs-seeker
 description: Find documentation for APIs, libraries, and error messages. Looks up official docs, changelog entries, and migration guides.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L3
   model: haiku
   group: knowledge
@@ -13,16 +13,11 @@ metadata:
 
 ## Purpose
 
-Find documentation for APIs, libraries, and error messages. Docs-seeker looks up official docs, changelog entries, deprecation notices, and migration guides. Called when skills encounter unfamiliar APIs or unclear error messages.
-
-## Triggers
-
-- Called by L2 skills needing documentation
-- Auto-trigger: when error message contains library name or API reference
+Documentation lookup utility. Receives a library name, API reference, or error message, resolves the correct documentation, and returns API signatures, usage examples, and known issues. Stateless — no memory between calls.
 
 ## Calls (outbound)
 
-None — pure L3 utility using WebSearch, WebFetch, and Context7 tools.
+None — pure L3 utility using `WebSearch`, `WebFetch`, and Context7 MCP tools directly.
 
 ## Called By (inbound)
 
@@ -30,30 +25,83 @@ None — pure L3 utility using WebSearch, WebFetch, and Context7 tools.
 - `fix` (L2): check correct API usage before applying changes
 - `review` (L2): verify API usage is current and correct
 
-## Workflow
+## Execution
 
-1. **Identify target** — library name, version, API endpoint, or error code
-2. **Search docs** — official documentation, GitHub issues, Stack Overflow
-3. **Extract** — relevant API signatures, usage examples, known issues
-4. **Format** — structured output with code examples
+### Input
+
+```
+target: string         — library name, API endpoint, or error message
+version: string        — (optional) specific version to look up
+query: string          — specific question about the target (e.g., "how to configure retry")
+```
+
+### Step 1 — Identify Target
+
+Parse the input to extract:
+- Library or framework name (e.g., "react-query", "fastapi", "prisma")
+- Version if specified
+- The specific API, method, or error to look up
+
+### Step 2 — Try Context7
+
+Attempt Context7 MCP lookup first (faster, higher quality):
+
+1. Call `mcp__plugin_context7_context7__resolve-library-id` with the library name and query
+2. Select the best matching library ID from results (prioritize: name match, source reputation, snippet count)
+3. Call `mcp__plugin_context7_context7__query-docs` with the resolved library ID and the specific query
+4. If Context7 returns a satisfactory answer with code examples, proceed to Step 5
+
+### Step 3 — Fallback to Web
+
+If Context7 does not have the library or the answer is insufficient:
+
+1. Use `WebSearch` with queries:
+   - "[library] [api/method] official documentation"
+   - "[library] [version] [query]"
+   - "[error message] [library] fix"
+2. Identify official documentation URLs (docs.*, official GitHub, npm/pypi pages)
+3. Call `WebFetch` on the top 1-3 official sources
+
+### Step 4 — Extract Answer
+
+From Context7 or fetched pages, extract:
+- Exact API signature with parameter types and return type
+- Minimal working code example
+- Version-specific notes (deprecated in X, changed in Y)
+- Known issues or common pitfalls mentioned in docs
+
+### Step 5 — Report
+
+Return structured documentation in the output format below.
+
+## Constraints
+
+- Prefer Context7 over WebSearch — it provides curated, version-aware docs
+- Only fall back to web if Context7 lacks coverage
+- Always include source URL so callers can verify
+- If the API is deprecated, say so explicitly and link to the replacement
 
 ## Output Format
 
 ```
 ## Documentation: [Library/API]
-- **Version**: [detected]
-- **Source**: [official docs URL]
+- **Version**: [detected or "latest"]
+- **Source**: [official docs URL or "Context7"]
 
 ### API Reference
-- [function/endpoint signature]
-- [parameters and types]
-- [return value]
+- **Signature**: `functionName(param1: Type, param2: Type): ReturnType`
+- **Parameters**:
+  - `param1` — description
+  - `param2` — description
+- **Returns**: description
 
 ### Usage Example
-[code snippet from docs]
+```[lang]
+[minimal working code snippet from official docs]
+```
 
-### Known Issues
-- [relevant issues or deprecations]
+### Known Issues / Deprecations
+- [relevant warning, deprecation notice, or common mistake]
 ```
 
 ## Cost Profile

@@ -221,6 +221,22 @@ Mark todo[4] `completed`.
 
 ---
 
+## Constraints
+
+1. MUST pass ALL tests before any deploy attempt — zero exceptions
+2. MUST pass sentinel security scan before deploy — no CRITICAL findings allowed
+3. MUST have rollback plan documented before deploying to production
+4. MUST NOT deploy and run marketing simultaneously — deploy first, verify, then market
+5. MUST verify deploy is live and healthy before triggering marketing skills
+
+## Mesh Gates
+
+| Gate | Requires | If Missing |
+|------|----------|------------|
+| Test Gate | verification output showing all green | Run rune:verification first |
+| Security Gate | sentinel output with no CRITICAL findings | Run rune:sentinel first |
+| Deploy Gate | Successful deploy confirmation before marketing | Deploy first |
+
 ## Output Format
 
 ```

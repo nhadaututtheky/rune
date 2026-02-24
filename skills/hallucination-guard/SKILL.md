@@ -3,7 +3,7 @@ name: hallucination-guard
 description: Verify AI-generated imports, API calls, and packages actually exist. Catches phantom functions, non-existent packages, and slopsquatting attacks.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L3
   model: haiku
   group: validation
@@ -35,14 +35,64 @@ Post-generation validation that verifies AI-generated code references actually e
 - `preflight` (L2): import verification sub-check
 - `review` (L2): during code review
 
-## Workflow
+## Execution
 
-1. **Extract references** — parse import statements, require calls, API endpoints from changed files
-2. **Internal reference check** — verify imported files/functions/classes exist in the codebase, check function signatures match usage
-3. **External package check** — verify npm/pip/cargo packages exist in registries, flag suspicious package names (typosquatting patterns)
-4. **API call validation** — verify endpoint URL patterns, check HTTP methods, validate request/response shapes if docs available
-5. **Type compatibility check** — verify type assertions match actual types, flag unsafe type casts
-6. **Generate report** with verified/unverified/suspicious references
+### Step 1 — Extract imports
+
+Use `Grep` to find all import/require/use statements in changed files:
+
+```
+Grep pattern: ^(import|require|use|from)\s
+Files: changed files passed as input
+Output mode: content
+```
+
+Collect every imported module name and file path. Separate into:
+- Internal imports (start with `./`, `../`, `@/`, `~/`)
+- External packages (bare module names)
+
+### Step 2 — Verify internal imports
+
+For each internal import path, use `Glob` to confirm the file exists in the codebase.
+
+```
+Glob pattern: <resolved import path>.*   (try .ts, .tsx, .js, .jsx, .py, .rs etc.)
+```
+
+If `Glob` returns no results → mark as **BLOCK** (file does not exist).
+
+Also use `Grep` to verify that the specific exported name (function/class/const) exists in the resolved file:
+
+```
+Grep pattern: export (function|class|const|default) <name>
+File: resolved file path
+```
+
+If export not found → mark as **WARN** (symbol may not be exported).
+
+### Step 3 — Verify external packages
+
+Use `Read` on the project's dependency manifest to confirm each external package is listed:
+
+- JavaScript/TypeScript: `package.json` → check `dependencies` and `devDependencies`
+- Python: `requirements.txt` or `pyproject.toml`
+- Rust: `Cargo.toml` → `[dependencies]`
+
+If package is **not listed** in the manifest → mark as **BLOCK** (phantom dependency).
+
+Also check for typosquatting: if package name has edit distance ≤ 2 from a known popular package (axios/axois, lodash/lodahs, react/recat), mark as **SUSPICIOUS**.
+
+### Step 4 — Verify API calls
+
+For any API endpoint or SDK method call found in the diff, use `rune:docs-seeker` (Context7) to confirm:
+- The method/function exists in the library's documented API
+- The parameter signature matches usage in code
+
+Mark unverifiable API calls as **WARN** (cannot confirm without docs).
+
+### Step 5 — Report
+
+Emit the report in the Output Format below. If any **BLOCK** items exist, return status `BLOCK` to the calling skill to halt commit/deploy.
 
 ## Check Types
 
@@ -75,6 +125,13 @@ SUSPICIOUS  — package name similar to popular package (slopsquatting)
 ### Verified
 - 12/15 references verified successfully
 ```
+
+## Constraints
+
+1. MUST verify every import against actual installed packages — not just check if name looks reasonable
+2. MUST verify API signatures against docs — not assume from function name
+3. MUST report BLOCK verdict with specific evidence — never "looks suspicious"
+4. MUST NOT say "no hallucinations found" without listing what was checked
 
 ## Cost Profile
 

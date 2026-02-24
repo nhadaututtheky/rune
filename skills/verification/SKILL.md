@@ -1,9 +1,9 @@
 ---
 name: verification
-description: Run project checks — lint, type-check, test suite, build validation. Universal validator called by multiple skills to confirm code health.
+description: "Universal verification runner. Runs lint, type-check, tests, and build. Use after any code change to verify nothing is broken."
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L3
   model: haiku
   group: validation
@@ -11,19 +11,93 @@ metadata:
 
 # verification
 
-## Purpose
+Runs all automated checks to verify code health. Stateless — runs checks and reports results.
 
-Universal project validator that runs lint, type-check, test suite, and build validation. Verification is the final "does it actually work?" check — called by cook before commit, by fix after changes, by deploy before deployment, and by sentinel for security tool output. Runs on haiku for speed and cost efficiency.
+## Instructions
 
-## Triggers
+### Phase 1: Detect Project Type
 
-- Called by multiple L1/L2 skills as final validation step
-- `/rune verify` — manual verification run
-- Auto-trigger: before any git commit in cook workflow
+Use `Glob` to find project config files:
 
-## Calls (outbound)
+1. Check for `package.json` → Node.js/TypeScript project
+2. Check for `pyproject.toml` or `setup.py` → Python project
+3. Check for `Cargo.toml` → Rust project
+4. Check for `go.mod` → Go project
+5. Check for `pom.xml` or `build.gradle` → Java project
 
-None — verification is a pure L3 utility. It runs project-specific commands and reports results.
+Use `Read` on the detected config file to find scripts or tool config (e.g., `package.json` scripts block for custom lint/test commands).
+
+```
+TodoWrite: [
+  { content: "Detect project type", status: "in_progress" },
+  { content: "Run lint check", status: "pending" },
+  { content: "Run type check", status: "pending" },
+  { content: "Run test suite", status: "pending" },
+  { content: "Run build", status: "pending" },
+  { content: "Generate verification report", status: "pending" }
+]
+```
+
+### Phase 2: Run Lint
+
+Use `Bash` to run the appropriate linter. If `package.json` has a `lint` script, prefer that:
+
+- **Node.js (npm lint script)**: `npm run lint`
+- **Node.js (no script)**: `npx eslint . --max-warnings 0`
+- **Python**: `ruff check .` (fallback: `flake8 .`)
+- **Rust**: `cargo clippy -- -D warnings`
+- **Go**: `golangci-lint run` (fallback: `go vet ./...`)
+
+If lint fails: record the failure output, mark lint as FAIL, continue to next step. Do NOT stop.
+
+**Verification gate**: Command exits without crashing (even if it reports lint errors — those are FAIL, not errors).
+
+### Phase 3: Run Type Check
+
+Use `Bash`:
+
+- **TypeScript**: `npx tsc --noEmit`
+- **Python**: `mypy .` (fallback: `pyright .`)
+- **Rust**: `cargo check`
+- **Go**: `go vet ./...`
+
+If type check fails: record error count and first 10 error lines, mark as FAIL, continue.
+
+### Phase 4: Run Tests
+
+Use `Bash` to run the test suite. Prefer the project script if available:
+
+- **Node.js (npm test script)**: `npm test`
+- **Vitest**: `npx vitest run`
+- **Jest**: `npx jest --passWithNoTests`
+- **Python**: `pytest -v` (fallback: `python -m unittest discover`)
+- **Rust**: `cargo test`
+- **Go**: `go test ./...`
+
+Record: total tests, passed count, failed count, coverage percentage if output includes it.
+
+If tests fail: record which tests failed (first 20), mark as FAIL, continue to build.
+
+### Phase 5: Run Build
+
+Use `Bash`:
+
+- **Node.js**: check `package.json` for `build` script → `npm run build` (fallback: `npx tsc`)
+- **Python**: skip (interpreted) unless `pyproject.toml` has build backend
+- **Rust**: `cargo build`
+- **Go**: `go build ./...`
+
+If build fails: record first 20 lines of build output, mark as FAIL.
+
+### Phase 6: Generate Report
+
+Compile all results into the structured report. Update all TodoWrite items to completed.
+
+## Error Recovery
+
+- If project type cannot be detected: report "Unknown project type" and skip all checks
+- If a command is not found (e.g., `ruff` not installed): note "tool not installed", mark check as SKIP
+- If a command hangs for more than 60 seconds: kill it, mark check as TIMEOUT, continue
 
 ## Called By (inbound)
 
@@ -34,39 +108,32 @@ None — verification is a pure L3 utility. It runs project-specific commands an
 - `sentinel` (L2): run security audit tools (npm audit, etc.)
 - `safeguard` (L2): verify safety net is solid before refactoring
 
-## Workflow
-
-1. **Detect project type** — read package.json, pyproject.toml, Cargo.toml, etc.
-2. **Run checks** in order:
-   - **Lint** — eslint, ruff, clippy (project-specific)
-   - **Type check** — tsc, mypy, cargo check
-   - **Test suite** — jest, pytest, cargo test (full or targeted)
-   - **Build** — npm run build, cargo build (optional, for deploy)
-3. **Collect results** — pass/fail per check with error details
-4. **Report** — structured output for calling skill
-
 ## Output Format
 
 ```
-## Verification Report
-- **Status**: PASS | FAIL
-- **Project**: [name] | **Type**: [detected]
+VERIFICATION REPORT
+===================
+Lint:      [PASS/FAIL/SKIP] ([details])
+Types:     [PASS/FAIL/SKIP] ([X errors])
+Tests:     [PASS/FAIL/SKIP] ([passed]/[total], [coverage]%)
+Build:     [PASS/FAIL/SKIP]
 
-### Checks
-| Check | Status | Details |
-|-------|--------|---------|
-| Lint | PASS | 0 errors, 2 warnings |
-| Types | PASS | No errors |
-| Tests | PASS | 42/42 passed (95% coverage) |
-| Build | PASS | Built in 3.2s |
+Overall:   [PASS/FAIL]
 
-### Errors (if any)
-- [error details with file:line]
-
-### Warnings
-- [warning details]
+### Failures (if any)
+- Lint: [error details with file:line]
+- Types: [first 5 type errors]
+- Tests: [first 5 failing test names]
+- Build: [first 5 build errors]
 ```
+
+## Constraints
+
+1. MUST run ALL four checks: lint, type-check, tests, build — not just tests
+2. MUST show actual command output — never claim "all passed" without evidence
+3. MUST report specific failures with file:line references
+4. MUST NOT skip checks because "changes are small"
 
 ## Cost Profile
 
-~500-1000 tokens input, ~200-500 tokens output. Haiku for speed. Most time spent waiting for project commands to execute, not on token processing.
+~$0.01-0.03 per run. Haiku + Bash commands. Fast and cheap.

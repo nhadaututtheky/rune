@@ -1,9 +1,9 @@
 ---
 name: test
-description: Write and run tests — unit, integration, e2e. Enforces TDD (red→green→refactor). Calls debug when tests fail with unclear reasons.
+description: "TDD test writer. Writes failing tests FIRST (red), then verifies they pass after implementation (green). Covers unit, integration, and e2e tests."
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: sonnet
   group: development
@@ -11,24 +11,119 @@ metadata:
 
 # test
 
-## Purpose
+<HARD-GATE>
+Tests define the EXPECTED BEHAVIOR. They MUST be written BEFORE implementation code.
+If tests pass without implementation → the tests are wrong. Rewrite them.
+The only exception: when retrofitting tests for existing untested code.
+</HARD-GATE>
 
-Write and run tests — unit, integration, and e2e. Test enforces TDD discipline in the Rune ecosystem: write failing tests first (red), implement to pass (green), refactor. When tests fail with unclear reasons, hands off to debug for root cause analysis. Connected to the quality gate via preflight.
+## Instructions
 
-## Triggers
+### Phase 1: Understand What to Test
 
-- Called by `cook` Phase 3 TEST — write failing tests (TDD red)
-- Called by `fix` after applying changes — verify fix works
-- Called by `review` when untested edge cases found
-- Called by `deploy` for pre-deployment verification
-- Called by `preflight` for targeted regression tests
-- `/rune test` — manual test run
+1. Read the implementation plan or task description carefully
+2. Use `Glob` to find existing test files: `**/*.test.*`, `**/*.spec.*`, `**/test_*`
+3. Use `Read` on 2-3 existing test files to understand:
+   - Test framework in use
+   - File naming convention (e.g., `foo.test.ts` mirrors `foo.ts`)
+   - Test directory structure (co-located vs `__tests__/` vs `tests/`)
+   - Assertion style and patterns
+4. Use `Glob` to find the source file(s) being tested
 
-## Calls (outbound)
+```
+TodoWrite: [
+  { content: "Understand scope and find existing test patterns", status: "in_progress" },
+  { content: "Detect test framework and conventions", status: "pending" },
+  { content: "Write failing tests (RED phase)", status: "pending" },
+  { content: "Run tests — verify they FAIL", status: "pending" },
+  { content: "After implementation: verify tests PASS (GREEN phase)", status: "pending" }
+]
+```
 
-- `debug` (L2): when test fails with unclear reason — hand off for root cause analysis
-- `browser-pilot` (L3): for e2e/visual testing in browser
-- `verification` (L3): validate test coverage meets threshold (80%+)
+### Phase 2: Detect Test Framework
+
+Use `Glob` to find config files and identify the framework:
+
+- `jest.config.*` or `"jest"` key in `package.json` → Jest
+- `vitest.config.*` or `"vitest"` key in `package.json` → Vitest
+- `pytest.ini`, `[tool.pytest.ini_options]` in `pyproject.toml` → pytest
+- `Cargo.toml` with `#[cfg(test)]` pattern → built-in `cargo test`
+- `*_test.go` files present → built-in `go test`
+- `cypress.config.*` → Cypress (E2E)
+- `playwright.config.*` → Playwright (E2E)
+
+**Verification gate**: Framework identified before writing any test code.
+
+### Phase 3: Write Failing Tests
+
+Use `Write` to create test files following the detected conventions:
+
+1. Mirror source file location: if source is `src/auth/login.ts`, test is `src/auth/login.test.ts`
+2. Structure tests with clear `describe` / `it` blocks (or language equivalent):
+   - `describe('Feature name')`
+     - `it('should [expected behavior] when [condition]')`
+3. Cover all three categories:
+   - **Happy path**: valid inputs, expected success output
+   - **Edge cases**: empty input, boundary values, large input
+   - **Error cases**: invalid input, missing data, network failure simulation
+
+4. Use proper assertions. Do NOT use implementation details — test behavior:
+   - Jest/Vitest: `expect(result).toBe(expected)`
+   - pytest: `assert result == expected`
+   - Rust: `assert_eq!(result, expected)`
+   - Go: `if result != expected { t.Errorf(...) }`
+
+5. For async code: use `async/await` or pytest `@pytest.mark.asyncio`
+
+### Phase 4: Run Tests — Verify They FAIL (RED)
+
+Use `Bash` to run ONLY the newly created test files (not full suite):
+
+- **Jest**: `npx jest path/to/test.ts --no-coverage`
+- **Vitest**: `npx vitest run path/to/test.ts`
+- **pytest**: `pytest path/to/test_file.py -v`
+- **Rust**: `cargo test test_module_name`
+- **Go**: `go test ./path/to/package/... -run TestFunctionName`
+
+**Hard gate**: ALL new tests MUST fail at this point.
+
+- If ANY test passes before implementation exists → that test is not testing real behavior. Rewrite it to be stricter.
+- If tests fail with import/syntax errors (not assertion errors) → fix the test code, re-run
+
+### Phase 5: After Implementation — Verify Tests PASS (GREEN)
+
+After `rune:fix` writes implementation code, run the same test command again:
+
+1. ALL tests in the new test files MUST pass
+2. Run the full test suite with `Bash` to check for regressions:
+   - `npm test`, `pytest`, `cargo test`, `go test ./...`
+3. If any test fails: report clearly which test, what was expected, what was received
+4. If an existing test now fails (regression): escalate to `rune:debug`
+
+**Verification gate**: 100% of new tests pass AND 0 regressions in existing tests.
+
+### Phase 6: Coverage Check
+
+After GREEN phase, call `verification` to check coverage threshold (80% minimum):
+
+- If coverage drops below 80%: identify uncovered lines, write additional tests
+- Report coverage gaps with file:line references
+
+## Test Types
+
+| Type | When | Framework | Speed |
+|------|------|-----------|-------|
+| Unit | Individual functions, pure logic | jest/vitest/pytest/cargo test | Fast |
+| Integration | API endpoints, DB operations | supertest/httpx/reqwest | Medium |
+| E2E | Critical user flows | Playwright/Cypress via browser-pilot | Slow |
+| Regression | After bug fixes | Same as unit | Fast |
+
+## Error Recovery
+
+- If test framework not found: ask calling skill to specify, or check `package.json` `devDependencies`
+- If `Write` to test file fails: check if directory exists, create it first with `Bash mkdir -p`
+- If tests error on import (module not found): check that source file path is correct, adjust imports
+- If `Bash` test runner hangs beyond 120 seconds: kill and report as TIMEOUT
 
 ## Called By (inbound)
 
@@ -41,55 +136,51 @@ Write and run tests — unit, integration, and e2e. Test enforces TDD discipline
 - `launch` (L1): pre-deployment test suite
 - `safeguard` (L2): writing characterization tests for legacy code
 
-## Cross-Hub Connections
+## Calls (outbound)
 
-- `test` → `debug` — test fails unexpectedly → debug investigates
-- `test` ← `fix` — fix applied → test verifies
-- `test` ← `review` — review finds untested edge case → test writes it
+- `verification` (L3): Phase 6 — coverage check (80% minimum threshold)
+- `debug` (L2): Phase 5 — when existing test regresses unexpectedly
 
-## Workflow
+## Constraints
 
-1. **Analyze scope** — determine what needs testing based on task (new feature, bug fix, regression)
-2. **Write tests** — create test cases covering happy path, edge cases, error cases
-3. **Run tests** — execute test suite (targeted, not full suite unless deploy)
-4. **Evaluate results** — if all pass → report success, if fail → analyze
-5. **Debug failures** — if failure is unclear, call debug for root cause analysis
-6. **Coverage check** — call verification to check coverage threshold
-7. **Report** — output test results and coverage
+1. MUST write tests BEFORE implementation code — if tests pass without implementation, they are wrong
+2. MUST cover happy path + edge cases + error cases — not just happy path
+3. MUST run tests to verify they FAIL before implementation exists (RED phase is mandatory)
+4. MUST NOT write tests that test mock behavior instead of real code behavior
+5. MUST achieve 80% coverage minimum — identify and fill gaps
+6. MUST use the project's existing test framework and conventions — don't introduce a new one
+7. MUST NOT say "tests pass" without showing actual test runner output
 
-## Test Types
+## Mesh Gates
 
-```
-UNIT         — individual functions, utilities, components (fastest)
-INTEGRATION  — API endpoints, database operations, service interactions
-E2E          — critical user flows via browser-pilot (slowest, most expensive)
-REGRESSION   — targeted tests for code affected by changes (preflight use)
-```
+| Gate | Requires | If Missing |
+|------|----------|------------|
+| RED Gate | All new tests FAIL before implementation | If any pass, rewrite stricter tests |
+| GREEN Gate | All tests PASS after implementation | Fix code, not tests |
+| Coverage Gate | 80%+ coverage verified via verification | Write additional tests for gaps |
 
 ## Output Format
 
 ```
 ## Test Report
-- **Suite**: [test file/suite name]
-- **Status**: PASS | FAIL | PARTIAL
-- **Results**: [passed]/[total] ([percentage]%)
-- **Coverage**: [line]% lines, [branch]% branches
+- **Framework**: [detected]
+- **Files Created**: [list of new test file paths]
+- **Tests Written**: [count]
+- **Status**: RED (failing as expected) | GREEN (all passing)
 
-### Passed
-- [test name] — [what it verifies]
+### Test Cases
+| Test | Status | Description |
+|------|--------|-------------|
+| `test_name` | FAIL/PASS | [what it tests] |
 
-### Failed
-- [test name] — [error message]
-  - Expected: [expected]
-  - Received: [received]
+### Coverage
+- Lines: [X]% | Branches: [Y]%
+- Gaps: `path/to/file.ts:42-58` — uncovered branch (error handling)
 
-### Coverage Gaps
-- `path/to/file.ts:42-58` — uncovered branch (error handling)
-
-### Recommendations
-- [suggestion for additional tests]
+### Regressions (if any)
+- [existing test that broke, with error details]
 ```
 
 ## Cost Profile
 
-~1500-4000 tokens input, ~500-1500 tokens output. Sonnet for test writing quality. Frequent invocation in TDD workflow.
+~$0.03-0.08 per invocation. Sonnet for writing tests, Bash for running them. Frequent invocation in TDD workflow.

@@ -1,9 +1,9 @@
 ---
 name: watchdog
-description: Post-deploy monitoring setup. Configures error tracking, health endpoints, alert rules, and smoke tests for deployed applications.
+description: Post-deploy monitoring. Checks if deployed app is healthy — HTTP status, response times, error detection, and smoke test report.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L3
   model: sonnet
   group: monitoring
@@ -13,55 +13,114 @@ metadata:
 
 ## Purpose
 
-Post-deploy monitoring setup. Configures error tracking (Sentry), health endpoints, alert rules, and smoke tests. Ensures deployed applications are monitored and issues are caught quickly.
-
-## Triggers
-
-- Called by deploy after successful deployment
-- Called by launch for monitoring setup
-
-## Calls (outbound)
-
-None — pure L3 utility.
+Post-deploy monitoring. Receives a deployed URL and list of expected endpoints, runs health checks, measures response times, detects errors, and returns a structured smoke test report.
 
 ## Called By (inbound)
 
 - `deploy` (L2): post-deploy monitoring setup
 - `launch` (L1): monitoring as part of launch pipeline
 
-## Capabilities
+## Calls (outbound)
+
+None — pure L3 utility.
+
+## Executable Instructions
+
+### Step 1: Receive Target
+
+Accept input from calling skill:
+- `base_url` — deployed application URL (e.g. `https://myapp.com`)
+- `endpoints` — list of paths to check (e.g. `["/", "/health", "/api/status"]`)
+
+If no endpoints provided, default to: `["/", "/health", "/ready"]`
+
+### Step 2: Health Check
+
+For each endpoint, run an HTTP status check using `Bash`:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" https://myapp.com/health
+```
+
+- 2xx → HEALTHY
+- 3xx → REDIRECT (note final destination)
+- 4xx → CLIENT_ERROR (flag as alert)
+- 5xx → SERVER_ERROR (flag as critical alert)
+- Connection refused / timeout → UNREACHABLE (flag as critical)
+
+### Step 3: Response Time
+
+For each endpoint, measure latency using `Bash`:
+
+```bash
+curl -s -o /dev/null -w "%{time_total}" https://myapp.com/health
+```
+
+Thresholds:
+- < 500ms → FAST
+- 500ms–2000ms → ACCEPTABLE
+- > 2000ms → SLOW (flag as alert)
+
+### Step 4: Error Detection
+
+Scan responses for problems:
+- 4xx/5xx HTTP codes → log endpoint + status code
+- Response time > 2s → log endpoint + measured time
+- Connection timeout (curl exits non-zero) → UNREACHABLE
+- Empty response body on non-204 endpoints → flag as WARNING
+
+Collect all flagged issues into an `alerts` list.
+
+### Step 5: Report
+
+Output the following report structure:
 
 ```
-MONITORING      — Sentry integration, error tracking setup
-HEALTH ENDPOINT — generate /health and /ready endpoints
-ALERT RULES     — error rate, response time, uptime thresholds
-SMOKE TEST      — verify critical endpoints after deploy
+## Watchdog Report: [base_url]
+
+### Smoke Test Results
+- [endpoint] — [HTTP status] ([response_time]s) — [HEALTHY|REDIRECT|CLIENT_ERROR|SERVER_ERROR|UNREACHABLE]
+
+### Alert Rules Applied
+- Response time > 2s → alert
+- Any 4xx on non-auth endpoint → alert
+- Any 5xx → critical alert
+- Unreachable → critical alert
+
+### Alerts
+- [CRITICAL|WARNING] [endpoint] — [reason]
+
+### Summary
+- Total endpoints checked: [n]
+- Healthy: [n]
+- Alerts: [n]
+- Overall status: ALL_HEALTHY | DEGRADED | DOWN
 ```
 
-## Workflow
-
-1. Receive deployment URL and list of health endpoints from calling skill
-2. Run availability checks — HTTP status, load time, /health and /ready responses
-3. Monitor error rates and response times against configured thresholds
-4. Compare results against baseline metrics to detect regressions
-5. Return monitoring report with smoke test results, alert rules configured, and any triggered alerts
+If no alerts: output `Overall status: ALL_HEALTHY`.
 
 ## Output Format
 
 ```
-## Watchdog Setup
-- **Monitoring**: [configured | skipped]
-- **Health Endpoint**: [path]
-- **Alerts**: [count rules configured]
-
+## Watchdog Report: [base_url]
 ### Smoke Test Results
-- [endpoint] — [status] ([response time]ms)
+- / — 200 (0.231s) — HEALTHY
+- /health — 200 (0.089s) — HEALTHY
+- /api/status — 500 (1.203s) — SERVER_ERROR
 
-### Alert Rules
-- Error rate > 1% → alert
-- Response time > 2s → alert
-- Uptime < 99.9% → alert
+### Alerts
+- CRITICAL /api/status — HTTP 500
+
+### Summary
+- Total: 3 | Healthy: 2 | Alerts: 1
+- Overall status: DEGRADED
 ```
+
+## Constraints
+
+1. MUST report with specific metrics — not vague "performance seems slow"
+2. MUST include baseline comparison when available
+3. MUST NOT generate false alarms — precision over recall
 
 ## Cost Profile
 

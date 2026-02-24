@@ -3,7 +3,7 @@ name: plan
 description: Create structured implementation plans from requirements. Breaks tasks into phases, identifies dependencies, and makes architecture decisions. Uses opus for deep reasoning.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: opus
   group: creation
@@ -41,16 +41,57 @@ Create structured implementation plans from requirements. Plan is the strategic 
 
 - `plan` ↔ `brainstorm` — bidirectional: plan asks brainstorm for creative options, brainstorm asks plan for structure
 
-## Workflow
+## Executable Steps
 
-1. **Understand scope** — parse requirements, identify what needs to be built
-2. **Scan codebase** — call scout to understand existing patterns, conventions, tech stack
-3. **Evaluate approaches** — if multiple valid approaches, call brainstorm for exploration
-4. **Research** — if unfamiliar tech, call research for external knowledge
-5. **Architecture decision** — choose approach, document rationale
-6. **Task breakdown** — split into ordered phases with dependencies
-7. **Risk assessment** — identify potential blockers and mitigation strategies
-8. **Output plan** — structured implementation plan ready for cook to execute
+### Step 1 — Gather Context
+Use findings from `rune:scout` if already available. If not, invoke `rune:scout` with the project root to scan directory structure, detect framework, identify key files, and extract existing patterns. Do NOT skip this step — plans without context produce wrong file paths.
+
+### Step 2 — Decompose the Task
+Break the task into ordered, atomic steps. Each step must specify:
+- Exact file path(s) to touch (absolute paths, not relative)
+- What to add, change, or delete in each file
+- Which function/class/component is affected
+- Order of operations (respect dependency graph — create dependencies before consumers)
+
+### Step 3 — Identify Risks
+For each step, assess:
+- **Breaking changes**: does this modify a public API, exported function, or shared type?
+- **Dependencies**: does this step require another step to complete first?
+- **Test coverage gaps**: which changed code paths have no existing tests?
+- **External dependencies**: new packages required? version conflicts?
+
+Flag every risk explicitly. Do not silently assume it is safe.
+
+### Step 4 — Write the Plan (with tests)
+Format each phase as:
+```
+Phase N: [name]
+- Files: [absolute paths]
+- Changes: [what to implement]
+- Tests: [test file path + test cases to write]
+- Complexity: low | medium | high
+- Risks: [identified risks from Step 3]
+```
+
+<HARD-GATE>
+Every phase that writes production code MUST have a corresponding test entry. A plan with zero test steps is REJECTED — do not present it to the user.
+</HARD-GATE>
+
+If multiple approaches are viable, invoke `rune:brainstorm` before writing the plan. If trade-offs involve complex architectural reasoning, invoke `rune:sequential-thinking`.
+
+### Step 5 — Present and Get Approval
+Present the full plan to the user. Do NOT begin execution. Wait for explicit approval ("yes", "go", "proceed", "looks good") before handing the plan to the caller (e.g., `cook`) for execution.
+
+If the user requests changes, revise the plan and re-present. Do not skip re-presentation after revisions.
+
+## Constraints
+
+1. MUST include exact file paths for every phase — no vague "set up the database"
+2. MUST include acceptance criteria for every phase — how do we know it's done?
+3. MUST include test entries for every phase that produces code — plans with zero tests are rejected
+4. MUST order phases by dependency — don't plan step 3 before step 1's output exists
+5. MUST NOT produce plans with fewer than 3 phases for non-trivial tasks
+6. MUST get user approval before the plan is executed
 
 ## Output Format
 
@@ -67,9 +108,11 @@ Create structured implementation plans from requirements. Plan is the strategic 
 
 ### Phases
 1. **Phase 1: [name]** — [description]
-   - Files: [paths]
-   - Tests: [test paths]
-   - Estimated complexity: low | medium | high
+   - Files: [absolute paths]
+   - Changes: [what to implement]
+   - Tests: [test file path + test cases]
+   - Complexity: low | medium | high
+   - Risks: [risks]
 
 2. **Phase 2: [name]** — [description]
    ...
@@ -80,6 +123,9 @@ Create structured implementation plans from requirements. Plan is the strategic 
 ### Success Criteria
 - [ ] [criterion 1]
 - [ ] [criterion 2]
+
+### Awaiting Approval
+Reply "go" to execute, or describe changes needed.
 ```
 
 ## Cost Profile

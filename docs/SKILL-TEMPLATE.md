@@ -38,6 +38,21 @@ Step-by-step execution flow.
 Structured output that calling skills can consume.
 ```
 
+## Constraints
+
+3-7 MUST/MUST NOT rules specific to this skill.
+Every constraint should block a specific failure mode or rationalization.
+
+Format:
+1. MUST [required behavior] — [why]
+2. MUST NOT [forbidden behavior] — [consequence]
+
+## Mesh Gates (L1/L2 only)
+
+| Gate | Requires | If Missing |
+|------|----------|------------|
+| [Gate Name] | [What must exist before proceeding] | [Action to take] |
+
 ## Cost Profile
 
 Estimated token usage per invocation.

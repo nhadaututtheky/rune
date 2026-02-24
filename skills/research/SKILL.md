@@ -3,7 +3,7 @@ name: research
 description: Web search and external knowledge lookup. Gathers data on technologies, libraries, best practices, and competitor solutions.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L3
   model: haiku
   group: knowledge
@@ -13,16 +13,11 @@ metadata:
 
 ## Purpose
 
-Web search and external knowledge lookup. Research gathers data on technologies, libraries, best practices, and competitor solutions. Called by planning and creative skills when internal knowledge is insufficient.
-
-## Triggers
-
-- Called by L2 skills needing external information
-- Auto-trigger: when task involves unfamiliar technology
+Web research utility. Receives a research question, executes targeted searches, deep-dives into top results, and returns structured findings with sources. Stateless — no memory between calls.
 
 ## Calls (outbound)
 
-None — pure L3 utility using WebSearch and WebFetch tools.
+None — pure L3 utility using `WebSearch` and `WebFetch` tools directly.
 
 ## Called By (inbound)
 
@@ -32,27 +27,74 @@ None — pure L3 utility using WebSearch and WebFetch tools.
 - `hallucination-guard` (L3): verify package existence on npm/pypi
 - `autopsy` (L2): research best practices for legacy patterns
 
-## Workflow
+## Execution
 
-1. **Parse query** — understand what information is needed
-2. **Search** — web search for relevant results
-3. **Extract** — pull key findings, code examples, documentation links
-4. **Summarize** — structured output for calling skill
+### Input
+
+```
+research_question: string   — what to research
+focus: string (optional)    — narrow the scope (e.g., "security", "performance")
+```
+
+### Step 1 — Formulate Queries
+
+Generate 2-3 targeted search queries from the research question. Vary phrasing to cover different angles:
+- Primary: direct question as search terms
+- Secondary: "[topic] best practices 2026" or "[topic] vs alternatives"
+- Tertiary: "[topic] example" or "[topic] tutorial" if implementation detail needed
+
+### Step 2 — Search
+
+Call `WebSearch` for each query. Collect result titles, URLs, and snippets. Identify the top 3-5 most relevant URLs based on:
+- Source authority (official docs, major blogs, GitHub repos)
+- Recency (prefer 2025-2026)
+- Relevance to the query
+
+### Step 3 — Deep Dive
+
+Call `WebFetch` on the top 3-5 URLs identified in Step 2. Hard limit: **max 5 WebFetch calls** per research invocation. For each fetched page:
+- Extract key facts, API signatures, code examples
+- Note the source URL and publication date if visible
+
+### Step 4 — Synthesize
+
+Across all fetched content:
+- Identify points of consensus across sources
+- Flag any conflicting information explicitly (e.g., "Source A says X, Source B says Y")
+- Assign confidence: `high` (3+ sources agree), `medium` (1-2 sources), `low` (single source or unclear)
+
+### Step 5 — Report
+
+Return structured findings in the output format below.
+
+## Constraints
+
+- Always cite source URL for every finding
+- Flag conflicting information — never silently pick one side
+- Max 5 WebFetch calls per invocation
+- If no useful results found, report that explicitly rather than fabricating
 
 ## Output Format
 
 ```
 ## Research Results: [Query]
-- **Sources**: [count]
+- **Sources fetched**: [n]
+- **Confidence**: high | medium | low
 
 ### Key Findings
-- [finding with source link]
+- [finding] — [source URL]
+- [finding] — [source URL]
+
+### Conflicts / Caveats
+- [Source A] says X. [Source B] says Y. Recommend verifying against [authority].
 
 ### Code Examples
-- [relevant snippet if applicable]
+```[lang]
+[relevant snippet]
+```
 
 ### Recommendations
-- [suggestion based on findings]
+- [actionable suggestion based on findings]
 ```
 
 ## Cost Profile

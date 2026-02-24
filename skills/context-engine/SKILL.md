@@ -3,7 +3,7 @@ name: context-engine
 description: Context window management. Detects when context is filling up, triggers smart compaction, and preserves critical information across compaction boundaries.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L3
   model: haiku
   group: state
@@ -30,26 +30,72 @@ Context window management for long sessions. Detects when context is approaching
 
 - Auto-triggered at phase boundaries and context thresholds by L1 orchestrators
 
-## Workflow
+## Execution
 
-1. **Monitor context** — track tool call count, estimate context utilization
-2. **Detect threshold** — warn when approaching 70% context, alert at 85%
-3. **Prepare compaction** — identify critical information to preserve:
-   - Current task and phase
-   - Architecture decisions made
-   - Files touched and changes applied
-   - Test results and blockers
-   - Remaining tasks
-4. **Trigger save** — coordinate with session-bridge to persist state to .rune/
-5. **Recommend action** — suggest compaction timing to L1 orchestrator
+### Step 1 — Assess context
+
+Estimate current context usage based on conversation length:
+
+- Count total tool calls made so far in this session
+- Estimate tokens consumed: each tool call ≈ 500-2000 tokens (read = low, bash = medium, write = high)
+- Add approximate tokens from user/assistant message history
+
+Produce a utilization estimate as a percentage of the model's context window (200K tokens for Claude Sonnet/Opus, 32K for Haiku).
+
+### Step 2 — Classify health
+
+Map utilization to health level:
+
+```
+GREEN   (<50%)    — Healthy, continue normally
+YELLOW  (50-70%)  — Load only essential files going forward
+ORANGE  (70-85%)  — Recommend /compact at next logical boundary
+RED     (>85%)    — Trigger immediate compaction, save state first
+```
+
+### Step 3 — If YELLOW
+
+Emit advisory to the calling orchestrator:
+
+> "Context at [X]%. Load only essential files. Avoid reading full files when Grep will do."
+
+Do NOT trigger compaction yet. Continue execution.
+
+### Step 4 — If ORANGE
+
+Emit recommendation to the calling orchestrator:
+
+> "Context at [X]%. Recommend /compact at next phase boundary (after current module completes)."
+
+Identify the next safe boundary (end of current loop iteration, end of current file being processed) and flag it.
+
+### Step 5 — If RED
+
+Immediately trigger state save via `rune:session-bridge` (Save Mode) before any compaction occurs.
+
+Pass to session-bridge:
+- Current task and phase description
+- List of files touched this session
+- Decisions made (architectural choices, conventions established)
+- Remaining tasks not yet started
+
+After session-bridge confirms save, emit:
+
+> "Context CRITICAL ([X]%). State saved to .rune/. Run /compact now."
+
+Block further tool calls until compaction is acknowledged.
+
+### Step 6 — Report
+
+Emit the context health report to the calling skill.
 
 ## Context Health Levels
 
 ```
-GREEN   (0-60%)   — Healthy, continue normally
-YELLOW  (60-80%)  — Approaching limit, save state at next phase boundary
-ORANGE  (80-90%)  — Near limit, save state NOW, consider compaction
-RED     (90%+)    — Critical, force save and compact immediately
+GREEN   (0-50%)   — Healthy, continue normally
+YELLOW  (50-70%)  — Load only essential files
+ORANGE  (70-85%)  — Recommend /compact at next logical boundary
+RED     (85%+)    — Save state NOW via session-bridge, compact immediately
 ```
 
 ## Output Format
@@ -59,7 +105,7 @@ RED     (90%+)    — Critical, force save and compact immediately
 - **Utilization**: [percentage]
 - **Status**: GREEN | YELLOW | ORANGE | RED
 - **Tool Calls**: [count]
-- **Recommendation**: continue | save-at-boundary | save-now | compact-immediately
+- **Recommendation**: continue | load-essential-only | compact-at-boundary | compact-immediately
 
 ### Critical Context (preserved on compaction)
 - Task: [current task]
@@ -68,6 +114,12 @@ RED     (90%+)    — Critical, force save and compact immediately
 - Files touched: [list]
 - Blockers: [if any]
 ```
+
+## Constraints
+
+1. MUST preserve context fidelity — no summarizing away critical details
+2. MUST flag context conflicts between skills — never silently pick one
+3. MUST NOT inject stale context from previous sessions without marking it as historical
 
 ## Cost Profile
 

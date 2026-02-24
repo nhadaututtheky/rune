@@ -3,7 +3,7 @@ name: preflight
 description: Pre-commit quality gate that catches "almost right" code. Goes beyond linting — checks logic correctness, error handling, regressions, and completeness.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: sonnet
   group: quality
@@ -12,6 +12,10 @@ metadata:
 # preflight
 
 ## Purpose
+
+<HARD-GATE>
+Preflight verdict of BLOCK stops the pipeline. The calling skill (cook, deploy, launch) MUST halt until all BLOCK findings are resolved and preflight re-runs clean.
+</HARD-GATE>
 
 Pre-commit quality gate that catches "almost right" code — the kind that compiles and passes linting but has logic errors, missing error handling, or incomplete implementations. Goes beyond static analysis to check data flow, edge cases, async correctness, and regression impact. The last defense before code enters the repository.
 
@@ -33,17 +37,6 @@ Pre-commit quality gate that catches "almost right" code — the kind that compi
 
 - `cook` (L1): before commit phase — mandatory gate
 
-## Workflow
-
-1. **Identify changes** — get list of modified files, functions, and their dependencies
-2. **Logic review** — trace data flow through changed functions, check edge cases (null, empty, boundary), verify async/await correctness
-3. **Error handling audit** — every async function has try/catch, every fetch has error handling, error messages are user-friendly, no bare catch
-4. **Regression check** — identify existing code affected by changes, check if affected areas have tests, flag untested impact zones
-5. **Completeness check** — new API endpoint has validation, new UI has loading/error states, new feature has tests, new config has documentation
-6. **Security sub-check** — delegate to sentinel for security-specific analysis
-7. **Import verification** — delegate to hallucination-guard for import/API checks
-8. **Generate verdict** — aggregate findings, determine PASS/WARN/BLOCK
-
 ## Check Categories
 
 ```
@@ -55,6 +48,57 @@ SECURITY    — delegated to sentinel
 IMPORTS     — delegated to hallucination-guard
 ```
 
+## Executable Steps
+
+### Step 1 — Logic Review
+Use `Read` to load each changed file. For every modified function or method:
+- Trace the data flow from input to output. Identify where a `null`, `undefined`, empty array, or 0 value would cause a runtime error or wrong result.
+- Check async/await: every `async` function that calls an async operation must `await` it. Identify missing `await` that would cause race conditions or unhandled promise rejections.
+- Check boundary conditions: off-by-one in loops, array index out of bounds, division by zero.
+- Check type coercions: implicit `==` comparisons that could produce wrong results, string-to-number conversions without validation.
+
+Flag each issue with: file path, line number, category (null-deref | missing-await | off-by-one | type-coerce), and a one-line description.
+
+### Step 2 — Error Handling
+For every changed file, verify:
+- Every `async` function has a `try/catch` block OR the caller explicitly handles the rejected promise.
+- No bare `catch(e) {}` or `except: pass` — every catch must log or rethrow with context.
+- Every `fetch` / HTTP client call checks the response status before consuming the body.
+- Error messages are user-friendly: no raw stack traces, no internal variable names exposed to the client.
+- API route handlers return appropriate HTTP status codes (4xx for client errors, 5xx for server errors).
+
+Flag each violation with: file path, line number, category (bare-catch | missing-status-check | raw-error-exposure), and description.
+
+### Step 3 — Regression Check
+Use `rune:scout` to identify all files that import or depend on the changed files/functions.
+For each dependent file:
+- Check if the changed function signature is still compatible (parameter count, types, return type).
+- Check if the dependent file has tests that cover the interaction with the changed code.
+- Flag untested impact zones: dependents with zero test coverage of the affected code path.
+
+Flag each regression risk with: dependent file path, what changed, whether tests exist, severity (breaking | degraded | untested).
+
+### Step 4 — Completeness Check
+Verify that new code ships complete:
+- New API endpoint → has input validation schema (Zod, Pydantic, Joi, etc.)
+- New React/Svelte component → has loading state AND error state
+- New feature → has at least one test file
+- New configuration option → has documentation (inline comment or docs file)
+- New database query → has corresponding migration file if schema changed
+
+If any completeness item is missing, flag as **WARN** with: what is missing, which file needs it.
+
+### Step 5 — Security Sub-Check
+Invoke `rune:sentinel` on the changed files. Attach sentinel's output verbatim under the "Security" section of the preflight report. If sentinel returns BLOCK, preflight verdict is also BLOCK.
+
+### Step 6 — Generate Verdict
+Aggregate all findings:
+- Any BLOCK from sentinel OR a logic issue that would cause data corruption or security bypass → overall **BLOCK**
+- Any missing error handling, regression risk with no tests, or incomplete feature → **WARN**
+- Only style or best-practice suggestions → **PASS**
+
+Report PASS, WARN, or BLOCK. For WARN, list each item the developer must acknowledge. For BLOCK, list each item that must be fixed before proceeding.
+
 ## Output Format
 
 ```
@@ -64,25 +108,33 @@ IMPORTS     — delegated to hallucination-guard
 - **Changes**: +[added] -[removed] lines across [files] files
 
 ### Logic Issues
-- `path/to/file.ts:42` — Possible null dereference: `user.name` without null check
-- `path/to/api.ts:85` — Async function missing await on database call
+- `path/to/file.ts:42` — null-deref: `user.name` accessed without null check
+- `path/to/api.ts:85` — missing-await: async database call not awaited
 
 ### Error Handling
-- `path/to/handler.ts:20` — Bare catch block swallows error silently
+- `path/to/handler.ts:20` — bare-catch: error swallowed silently
 
 ### Regression Risk
-- `utils/format.ts` — Changed function used by 5 other modules, only 2 have tests
+- `utils/format.ts` — changed function used by 5 modules, 2 have tests, 3 untested (WARN)
 
 ### Completeness
-- `api/users.ts` — New POST endpoint missing input validation
-- `components/Form.tsx` — No loading state during submission
+- `api/users.ts` — new POST endpoint missing input validation schema
+- `components/Form.tsx` — no loading state during submission
 
 ### Security (from sentinel)
 - [sentinel findings if any]
 
 ### Verdict
-WARN — 3 issues found (0 blocking, 3 should-fix). Safe to commit with acknowledgment.
+WARN — 3 issues found (0 blocking, 3 must-acknowledge). Resolve before commit or explicitly acknowledge each WARN.
 ```
+
+## Constraints
+
+1. MUST check: logic errors, error handling, edge cases, type safety, naming conventions
+2. MUST reference specific file:line for every finding
+3. MUST NOT skip edge case analysis — "happy path works" is insufficient
+4. MUST verify error messages are user-friendly and don't leak internal details
+5. MUST check that async operations have proper error handling and cleanup
 
 ## Cost Profile
 

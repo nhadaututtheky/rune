@@ -166,6 +166,14 @@ EXTRACT & SIMPLIFY      — For complex functions (cyclomatic > 10)
 [if partial]: Commit this checkpoint, then start new surgeon session for remaining work
 ```
 
+## Constraints
+
+1. MUST verify safeguard tests pass before making any edit
+2. MUST check blast radius before starting — max 5 files per session
+3. MUST run tests after EVERY individual edit — never accumulate untested changes
+4. MUST NOT change function signatures without updating all callers
+5. MUST preserve external behavior — refactoring changes structure, not behavior
+
 ## Cost Profile
 
 ~3000-6000 tokens input, ~1000-2000 tokens output. Sonnet. One module per session.

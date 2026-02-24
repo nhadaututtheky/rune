@@ -1,9 +1,9 @@
 ---
 name: asset-creator
-description: Generate visual assets — AI image prompts, banners, OG images, icons, and HTML/CSS exportable assets.
+description: Creates code-based visual assets — SVG icons, OG image HTML templates, social banners, and icon sets. Outputs files with usage instructions.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L3
   model: sonnet
   group: media
@@ -13,53 +13,119 @@ metadata:
 
 ## Purpose
 
-Generate visual assets for projects and marketing. Creates AI image prompts, banners, OG images, icons, and HTML/CSS-based exportable assets. Bridges the gap between code and visual design.
-
-## Triggers
-
-- Called by marketing for launch assets
-- Called by L4 UI packs for design assets
-
-## Calls (outbound)
-
-None — pure L3 utility.
+Creates code-based visual assets (SVG, CSS, HTML) for projects and marketing. Handles logos, OG images, social cards, and icon sets. Outputs actual files with light/dark variants and usage instructions. This skill creates CODE-based assets — not raster images.
 
 ## Called By (inbound)
 
 - `marketing` (L2): banners, OG images, social graphics
 - L4 `@rune/ui`: design system assets
 
-## Capabilities
+## Calls (outbound)
 
-```
-AI PROMPTS     — engineered prompts for DALL-E, Midjourney, Gemini
-BANNERS        — social media banners with text overlay (HTML/CSS)
-OG IMAGES      — Open Graph images for link previews
-ICONS          — SVG icon generation
-HTML ASSETS    — HTML/CSS assets exportable to PNG/JPG
-```
+None — pure L3 utility.
 
-## Workflow
+## Executable Instructions
 
-1. Receive asset requirements — type (banner / OG image / icon), dimensions, and style context
-2. Generate SVG / HTML / CSS assets or engineered AI image prompts matching the spec
-3. Optimize output for the target platform (Twitter 1200x628, OG 1200x630, etc.)
-4. Create multiple variants if needed (dark/light, different aspect ratios)
-5. Return asset files or prompts with file paths and usage instructions
+### Step 1: Receive Brief
 
-## Output Format
+Accept input from calling skill:
+- `asset_type` — one of: `logo` | `og_image` | `social_card` | `icon` | `icon_set` | `banner`
+- `dimensions` — width x height in pixels (e.g. `1200x630` for OG images)
+- `style` — description of visual style (e.g. "minimal dark", "comic bold", "glassmorphism")
+- `content` — text, brand name, tagline, or icon names to include
+- `output_dir` — where to save files (default: `assets/`)
+
+### Step 2: Design
+
+Before writing code, determine design parameters:
+
+1. Check if the project has `.rune/conventions.md` — use `Read` to load color palette and typography
+2. If no conventions file, apply defaults based on `style`:
+   - "dark" → `#0c1419` bg, `#ffffff` text, `#2196f3` accent
+   - "light" → `#faf8f3` bg, `#1a1a1a` text, `#1d4ed8` accent
+   - "comic" → `#fffef9` bg, `#1a1a1a` text, `2px solid #2a2a2a` border, `4px 4px 0 #2a2a2a` shadow
+   - "glassmorphism" → `rgba(255,255,255,0.05)` bg, `backdrop-filter: blur(12px)`, `rgba(255,255,255,0.1)` border
+
+3. Select typography:
+   - Display/headlines: Space Grotesk 700
+   - Body: Inter 400
+   - Monospace/prices: JetBrains Mono 700
+
+4. Apply standard dimensions by asset type if not specified:
+   - OG image: 1200x630px
+   - Twitter card: 1200x628px
+   - Instagram square: 1080x1080px
+   - Icon: 24x24px (or 512x512px for app icon)
+
+### Step 3: Create
+
+Use `Write` to generate the asset files:
+
+**For SVG icons and logos:**
+- Write inline SVG with proper `viewBox` attribute
+- Use `xmlns="http://www.w3.org/2000/svg"`
+- Include `role="img"` and `aria-label` for accessibility
+- Optimize paths — no unnecessary groups or transforms
+- File: `assets/[name].svg`
+
+**For OG images and social cards:**
+- Create an HTML file with embedded CSS
+- Use absolute pixel values (no relative units) for pixel-perfect output
+- Include Google Fonts import for Space Grotesk and Inter
+- File: `assets/[name]-og.html`
+
+**For icon sets:**
+- Create a single SVG sprite file with `<symbol>` elements
+- Each icon as a named `<symbol id="icon-[name]">` with `viewBox`
+- Include a usage example comment at the top
+- File: `assets/icons/sprite.svg`
+
+**For HTML banners:**
+- Self-contained HTML with all styles inline (no external deps)
+- File: `assets/banner-[platform].html`
+
+### Step 4: Variants
+
+If `style` contains "dark" or the asset type is OG/banner, also create a light mode variant:
+- Suffix dark variant with `-dark` (e.g. `og-dark.html`)
+- Suffix light variant with `-light` (e.g. `og-light.html`)
+
+For icon sets, create both a filled and outline variant if applicable.
+
+### Step 5: Report
+
+Output the following:
 
 ```
 ## Assets Created
-- [asset type]: [file path or description]
-
-### AI Image Prompts
-- [prompt with style, mood, composition details]
 
 ### Generated Files
-- assets/banner-twitter.html
-- assets/og-image.html
+- [asset_type]: [file_path] ([dimensions])
+- [asset_type] (dark): [file_path]
+- [asset_type] (light): [file_path]
+
+### Usage Instructions
+- OG image: Add <meta property="og:image" content="[url]/[filename]"> to <head>
+- SVG icon: <img src="assets/[name].svg" alt="[description]">
+- Icon sprite: <svg><use href="assets/icons/sprite.svg#icon-[name]"></use></svg>
+- Banner: Open [file] in browser, screenshot at [width]x[height]
+
+### Design Tokens Used
+- Background: [color]
+- Text: [color]
+- Accent: [color]
+- Font: [font-family]
 ```
+
+## Note
+
+This skill creates CODE-based assets (SVG/CSS/HTML). It does not generate raster images (PNG/JPG) directly — those require screenshotting the generated HTML files using browser-pilot.
+
+## Constraints
+
+1. MUST confirm output format and dimensions before generating
+2. MUST NOT generate copyrighted or trademarked content
+3. MUST save to project assets directory — not random locations
 
 ## Cost Profile
 

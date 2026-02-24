@@ -1,9 +1,9 @@
 ---
 name: scout
-description: Fast codebase scanner. Finds files, patterns, dependencies, and project structure. Use when any skill needs to understand the codebase before acting. Most-called skill in the Rune mesh.
+description: "Fast codebase scanner. Use when any skill needs codebase context. Finds files, patterns, dependencies, project structure. Pure read-only — never modifies files."
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: haiku
   group: creation
@@ -11,19 +11,84 @@ metadata:
 
 # scout
 
-## Purpose
+Fast, lightweight codebase scanning. Scout is the eyes of the Rune ecosystem.
 
-Fast, lightweight codebase scanning. Scout is the eyes of the Rune ecosystem — it finds files, maps structure, identifies patterns, and provides context to every other skill. Runs on haiku for speed and cost efficiency.
+## Instructions
 
-## Triggers
+When invoked, perform these steps:
 
-- Called by other skills (plan, debug, review, fix, cook, team, sentinel, preflight, onboard, autopsy)
-- `/rune scout` — manual scan
-- Auto-trigger: when any L2 skill needs codebase context
+### Phase 1: Structure Scan
 
-## Calls (outbound)
+Map the project layout:
 
-None — scout is a pure scanner using Glob/Grep/Read tools.
+1. Use `Glob` with `**/*` to understand directory structure
+2. Use `Bash` to run `ls` on key directories (root, src, lib, app)
+3. Identify framework by detecting these files:
+   - `package.json` → Node.js/TypeScript
+   - `Cargo.toml` → Rust
+   - `pyproject.toml` / `setup.py` → Python
+   - `go.mod` → Go
+   - `pom.xml` / `build.gradle` → Java
+
+```
+TodoWrite: [
+  { content: "Scan project structure", status: "in_progress" },
+  { content: "Run targeted file search", status: "pending" },
+  { content: "Map dependencies", status: "pending" },
+  { content: "Detect conventions", status: "pending" },
+  { content: "Generate scout report", status: "pending" }
+]
+```
+
+### Phase 2: Targeted Search
+
+Based on the scan request, run focused searches:
+
+1. Use `Glob` to find files matching the target domain:
+   - Auth domain: `**/*auth*`, `**/*login*`, `**/*session*`
+   - API domain: `**/*.controller.*`, `**/*.route.*`, `**/*.handler.*`
+   - Data domain: `**/*.model.*`, `**/*.schema.*`, `**/*.entity.*`
+2. Use `Grep` to search for specific patterns:
+   - Function names: `pattern: "function <name>"` or `"def <name>"`
+   - Class definitions: `pattern: "class <Name>"`
+   - Import statements: `pattern: "import.*<module>"` or `"from <module>"`
+3. Use `Read` to examine the most relevant files (max 10 files, prioritize by relevance)
+
+**Verification gate**: At least 1 relevant file found, OR confirm the target does not exist.
+
+### Phase 3: Dependency Mapping
+
+1. Use `Grep` to find import/require/use statements in identified files
+2. Map which modules depend on which (A → imports → B)
+3. Identify the blast radius of potential changes: which files import the target file
+
+### Phase 4: Convention Detection
+
+1. Check for config files using `Glob`:
+   - `.eslintrc*`, `eslint.config.*` → ESLint rules
+   - `tsconfig.json` → TypeScript config
+   - `.prettierrc*` → Prettier config
+   - `ruff.toml`, `.ruff.toml` → Python linter
+2. Check naming conventions by reading 2-3 representative source files
+3. Find existing tests with `Glob`: `**/*.test.*`, `**/*.spec.*`, `**/test_*`
+4. Determine test framework: `jest.config.*`, `vitest.config.*`, `pytest.ini`
+
+### Phase 5: Generate Report
+
+Produce structured output for the calling skill. Update TodoWrite to completed.
+
+## Constraints
+
+- **Read-only**: NEVER use Edit, Write, or Bash with destructive commands
+- **Fast**: Max 10 file reads per scan. Prioritize by relevance score
+- **Focused**: Only scan what is relevant to the request, not the entire codebase
+- **No side effects**: Do not cache, store, or modify anything
+
+## Error Recovery
+
+- If `Glob` returns 0 results: try broader pattern, then report "not found"
+- If a file fails to `Read`: skip it, note in report, continue with remaining files
+- If project type is ambiguous: check multiple config files, report all candidates
 
 ## Called By (inbound)
 
@@ -41,32 +106,30 @@ None — scout is a pure scanner using Glob/Grep/Read tools.
 - `marketing` (L2): scan codebase for feature descriptions
 - `safeguard` (L2): scan module boundaries before adding safety net
 
-## Workflow
-
-1. **Receive scan request** with search patterns, file types, or questions
-2. **Structure scan** — map directory tree, count files/LOC per module
-3. **Pattern search** — use Glob for file patterns, Grep for content
-4. **Dependency map** — identify imports, exports, module relationships
-5. **Return results** — structured output for calling skill to consume
-
 ## Output Format
 
 ```
 ## Scout Report
 - **Project**: [name] | **Framework**: [detected] | **Language**: [detected]
-- **Files**: [count] | **LOC**: [count] | **Modules**: [count]
+- **Files**: [count] | **Test Framework**: [detected]
 
 ### Relevant Files
-- `path/to/file.ts` — [why relevant]
+| File | Why Relevant | LOC |
+|------|-------------|-----|
+| `path/to/file` | [reason] | [lines] |
 
 ### Dependencies
-- [module] → [module] (import relationship)
+- `module-a` → imports → `module-b`
+
+### Conventions
+- Naming: [pattern detected]
+- File structure: [pattern]
+- Test pattern: [pattern]
 
 ### Observations
-- [pattern noticed]
-- [potential issue]
+- [pattern or potential issue noticed]
 ```
 
 ## Cost Profile
 
-~500-2000 tokens input, ~200-500 tokens output. Always haiku. Fast.
+~500-2000 tokens input, ~200-500 tokens output. Always haiku. Cheapest skill in the mesh.

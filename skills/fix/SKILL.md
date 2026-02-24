@@ -110,6 +110,22 @@ Produce a structured summary of all changes made.
 - Include verification results (tests, types, lint)
 - Note any follow-up work if the fix is partial or has known limitations
 
+## Constraints
+
+1. MUST NOT change test files to make tests pass — fix the CODE, not the TESTS
+2. MUST have a diagnosis (from debug or clear error) before applying fixes
+3. MUST run tests after each fix attempt — never batch multiple untested changes
+4. MUST NOT exceed 3 fix attempts — if 3 fixes fail, re-diagnose via rune:debug
+5. MUST follow project conventions found by scout — don't invent new patterns
+6. MUST NOT add unplanned features while fixing — fix only what was diagnosed
+
+## Mesh Gates
+
+| Gate | Requires | If Missing |
+|------|----------|------------|
+| Evidence Gate | Debug report OR clear error description before fixing | Run rune:debug first |
+| Test Gate | Tests run after each fix attempt | Run tests before claiming fix works |
+
 ## Output Format
 
 ```

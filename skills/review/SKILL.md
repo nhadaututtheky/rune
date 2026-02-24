@@ -3,7 +3,7 @@ name: review
 description: Code quality review — patterns, security, performance, correctness. Finds bugs, suggests improvements, triggers fix for issues found. Escalates to opus for security-critical code.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: sonnet
   group: development
@@ -13,7 +13,12 @@ metadata:
 
 ## Purpose
 
-Code quality review covering patterns, security, performance, and correctness. Review is the quality conscience of the Development Hub — it finds bugs, identifies code smells, checks for security issues, and triggers fix for anything that needs changing. Escalates to opus for security-critical code paths.
+Code quality analysis. Review finds bugs, bad patterns, security issues, and untested code. It does NOT fix anything — it reports findings and delegates: bugs go to rune:fix, untested code goes to rune:test, security-critical code goes to rune:sentinel.
+
+<HARD-GATE>
+A review that says "LGTM" or "code looks good" without specific file:line references is NOT a review.
+Every review MUST cite at least one specific concern, suggestion, or explicit approval per file changed.
+</HARD-GATE>
 
 ## Triggers
 
@@ -47,16 +52,72 @@ Code quality review covering patterns, security, performance, and correctness. R
 - `review` ← `fix` — complex fix requests self-review
 - `review` → `sentinel` — security-critical code → sentinel deep scan
 
-## Workflow
+## Execution
 
-1. **Gather context** — read changed files, call scout for related code if needed
-2. **Correctness review** — check logic, data flow, edge cases, async patterns
-3. **Security review** — check for OWASP top 10, secrets, input validation (delegate to sentinel if critical)
-4. **Performance review** — check for N+1 queries, unnecessary re-renders, memory leaks
-5. **Pattern review** — check consistency with project conventions, naming, structure
-6. **Test coverage** — identify untested edge cases, call test if gaps found
-7. **Bug detection** — if bugs found, call fix with descriptions
-8. **Report** — output review with severity-ranked findings
+### Step 1: Scope
+
+Determine what to review.
+
+- If triggered by a commit or PR: use `Bash` with `git diff main...HEAD` or `git diff HEAD~1` to see exactly what changed
+- If triggered by a specific file or feature: use `Read` on each named file
+- If context is unclear: use `rune:scout` to identify all files touched by the change
+- List every file in scope before proceeding — do not review files outside the stated scope
+
+### Step 2: Logic Check
+
+Read each changed file and check for correctness.
+
+- Use `Read` on every file in scope
+- Check for: logic errors, off-by-one errors, incorrect conditionals, broken async/await patterns
+- Check for: missing error handling, uncaught promise rejections, silent failures
+- Check for: edge cases — empty input, null/undefined, zero, negative numbers, empty arrays
+- Flag each finding with file path, line number, and severity
+
+### Step 3: Pattern Check
+
+Check consistency with project conventions.
+
+- Compare naming against existing codebase patterns (use `Grep` to sample similar code)
+- Check file structure: is it in the right layer/directory per project conventions?
+- Check for mutations — all state changes should use immutable patterns
+- Check for hardcoded values that should be constants or config
+- Check TypeScript: no `any`, full type coverage, no non-null assertions without justification
+- Flag inconsistencies as MEDIUM or LOW depending on impact
+
+### Step 4: Security Check
+
+Check for security-relevant issues.
+
+- Scan for: hardcoded secrets, API keys, passwords in code or comments
+- Scan for: unvalidated user input passed to queries, file paths, or shell commands
+- Scan for: missing authentication checks on new routes or functions
+- Scan for: XSS vectors (unsanitized HTML output), CSRF exposure, open redirects
+- If any security-sensitive code found (auth logic, input handling, crypto, payment): call `rune:sentinel` for deep scan
+- Sentinel escalation is mandatory — do not skip it for auth or crypto code
+
+### Step 5: Test Coverage
+
+Identify gaps in test coverage.
+
+- Use `Bash` to check if a test file exists for each changed file
+- Use `Glob` to find test files: `**/*.test.ts`, `**/*.spec.ts`, `**/__tests__/**`
+- Read the test file and verify: are the new functions covered? are edge cases tested?
+- If untested code found: call `rune:test` with specific instructions on what to test
+- Flag as HIGH if business logic is untested, MEDIUM if utility code is untested
+
+### Step 6: Report
+
+Produce a structured severity-ranked report.
+
+- Group findings by severity: CRITICAL → HIGH → MEDIUM → LOW
+- Include file path and line number for every finding
+- Include a Positive Notes section (good patterns observed)
+- Include a Verdict: APPROVE | REQUEST CHANGES | NEEDS DISCUSSION
+
+After reporting:
+- If any CRITICAL findings: call `rune:fix` immediately with the finding details
+- If any HIGH findings: call `rune:fix` with the finding details
+- If untested code: call `rune:test` with specific coverage gaps identified
 
 ## Severity Levels
 
@@ -90,6 +151,16 @@ LOW       — style inconsistency, naming suggestion, minor refactor opportunity
 ### Verdict
 [Summary and recommendation]
 ```
+
+## Constraints
+
+1. MUST read the full diff — not just the files the user pointed at
+2. MUST reference specific file:line for every finding
+3. MUST NOT rubber-stamp with generic praise ("well-structured", "clean code") without evidence
+4. MUST check: correctness, security, performance, conventions, test coverage
+5. MUST categorize findings: CRITICAL (blocks commit) / HIGH / MEDIUM / LOW
+6. MUST escalate to sentinel if auth/crypto/secrets code is touched
+7. MUST flag untested code paths and recommend tests via rune:test
 
 ## Cost Profile
 

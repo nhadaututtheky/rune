@@ -376,6 +376,35 @@ If context low → STOP, save state via journal + session-bridge, commit partial
 Rollback point: git tag rune-rescue-baseline (set in Phase 0)
 ```
 
+## Constraints
+
+1. MUST run autopsy diagnostic BEFORE planning any refactoring — understand before changing
+2. MUST create safety net (characterization tests via safeguard) BEFORE any code surgery
+3. MUST NOT refactor two coupled modules simultaneously — one module per session
+4. MUST run full test suite after EVERY individual edit — never accumulate failing tests
+5. MUST tag a safe rollback point before starting surgery
+6. MUST NOT exceed blast radius of 5 files per surgical session
+
+## Mesh Gates
+
+| Gate | Requires | If Missing |
+|------|----------|------------|
+| Autopsy Gate | autopsy report with health score before planning | Run rune:autopsy first |
+| Safety Gate | safeguard characterization tests passing before surgery | Run rune:safeguard first |
+| Surgery Gate | Each edit verified individually (tests pass) | Revert last edit, fix, re-verify |
+
+## Output Format
+
+```
+## Rescue Report: [Module Name]
+- **Status**: complete | partial | blocked
+- **Modules Refactored**: [count]
+- **Tests Before**: [count] ([pass rate]%)
+- **Tests After**: [count] ([pass rate]%)
+- **Health Score**: [before] → [after]
+- **Rollback Tag**: [git tag name]
+```
+
 ## Cost Profile
 
 ~$0.10-0.30 per session. Sonnet for surgery, opus for autopsy. Multi-session workflow.

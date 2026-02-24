@@ -111,6 +111,16 @@ Produce structured output and hand off to rune:fix.
 - Call `rune:fix` with the full report if fix is needed
 - Do NOT apply any code changes — report only
 
+## Constraints
+
+1. MUST NOT apply any code changes — debug investigates only, fix applies
+2. MUST reproduce the error before forming hypotheses — no guessing from error messages alone
+3. MUST gather evidence (file reads, grep, stack traces) before hypothesizing
+4. MUST form exactly 2-3 hypotheses, ordered by likelihood — no more, no fewer
+5. MUST mark each hypothesis CONFIRMED or RULED OUT with specific evidence
+6. MUST NOT exceed 3 hypothesis cycles — escalate to problem-solver or sequential-thinking
+7. MUST NOT say "I know what's wrong" without citing file:line evidence
+
 ## Output Format
 
 ```
