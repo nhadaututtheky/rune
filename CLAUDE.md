@@ -21,17 +21,19 @@ rune/
 ├── .claude-plugin/     # Plugin manifest
 │   ├── plugin.json     # Plugin metadata
 │   └── marketplace.json # Marketplace catalog
-├── skills/             # SKILL.md files (one dir per skill)
+├── skills/             # Core skills (L1-L3, one dir per skill)
+├── extensions/         # L4 extension packs (one dir per pack)
 ├── commands/           # Slash command definitions
 ├── agents/             # Subagent definitions
 ├── hooks/              # Event hooks (session-start, etc.)
 ├── scripts/            # Executable scripts for skills
-└── docs/               # Documentation and plans
+└── docs/               # Documentation, templates, and plans
 ```
 
 ## Conventions
 
 - Every skill MUST have a SKILL.md following docs/SKILL-TEMPLATE.md
+- Every extension MUST have a PACK.md following docs/EXTENSION-TEMPLATE.md
 - Skill names: lowercase kebab-case, max 64 chars
 - Layer rules: L1 calls L2/L3. L2 calls L2/L3. L3 calls nothing.
 - Model selection: haiku (scan), sonnet (code), opus (architecture)
@@ -60,7 +62,12 @@ verification, hallucination-guard, context-engine, journal, session-bridge,
 watchdog, scope-guard, browser-pilot, asset-creator, video-creator,
 dependency-doctor
 
-Next: L4 Extension Packs + community launch
+### L4 Extension Packs (12)
+@rune/ui, @rune/backend, @rune/devops, @rune/mobile, @rune/security,
+@rune/trading, @rune/saas, @rune/ecommerce, @rune/ai-ml, @rune/gamedev,
+@rune/content, @rune/analytics
+
+All layers complete. Repository: https://github.com/nhadaututtheky/rune
 
 ## Full Spec
 
