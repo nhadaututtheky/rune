@@ -64,5 +64,5 @@ Next: L4 Extension Packs + community launch
 
 ## Full Spec
 
-See `~/.claude/rune/FORGE-COMPLETE.md` for the complete product specification.
+See `~/.claude/rune/RUNE-COMPLETE.md` for the complete product specification.
 See `docs/ARCHITECTURE.md` for the 4-layer architecture reference.
