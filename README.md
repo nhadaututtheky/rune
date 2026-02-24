@@ -8,7 +8,7 @@ A lean, interconnected skill ecosystem for Claude Code that covers the full proj
 
 Most skill ecosystems are either **too many isolated skills** (540+ that don't talk to each other) or **rigid pipelines** (A → B → C, if B fails everything stops).
 
-Rune is a **mesh** — 35 skills with 108 connections. Skills call each other bidirectionally, forming resilient workflows that adapt when things go wrong.
+Rune is a **mesh** — 36 skills with 115 connections. Skills call each other bidirectionally, forming resilient workflows that adapt when things go wrong.
 
 ```
 Pipeline:  A → B → C → D         (B fails = stuck)
@@ -38,6 +38,9 @@ claude plugin add rune
 
 # Refactor legacy code safely
 /rune rescue
+
+# Full project health audit
+/rune audit
 ```
 
 ## Architecture
@@ -50,12 +53,12 @@ claude plugin add rune
 ║  Full lifecycle workflows                          ║
 ║  cook │ team │ launch │ rescue                     ║
 ╠═══════════════════════════════════════════════════╣
-║  L2: WORKFLOW HUBS (15)                            ║
+║  L2: WORKFLOW HUBS (16)                            ║
 ║  Cross-hub mesh — the key differentiator           ║
 ║                                                     ║
 ║  Creation:    plan │ scout │ brainstorm             ║
 ║  Development: debug │ fix │ test │ review           ║
-║  Quality:     sentinel │ preflight │ onboard        ║
+║  Quality:     sentinel │ preflight │ onboard │ audit║
 ║  Delivery:    deploy │ marketing                    ║
 ║  Rescue:      autopsy │ safeguard │ surgeon         ║
 ╠═══════════════════════════════════════════════════╣
@@ -187,11 +190,11 @@ Domain-specific skills that plug into the core mesh:
 ## Numbers
 
 ```
-Core Skills:       35
+Core Skills:       36
 Extension Packs:   12
-Mesh Connections:  108+
+Mesh Connections:  115+
 Pain Points Solved: 85% (17/20)
-Connections/Skill: 3.1 (vs 1.5 industry average)
+Connections/Skill: 3.2 (vs 1.5 industry average)
 ```
 
 ## License

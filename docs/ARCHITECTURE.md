@@ -5,7 +5,7 @@
 | Layer | Name | Count | Can Call | Called By | State |
 |-------|------|-------|----------|----------|-------|
 | L1 | Orchestrators | 4 | L2, L3 | User only | Stateful (workflow) |
-| L2 | Workflow Hubs | 15 | L2 (cross-hub), L3 | L1, L2 | Stateful (task) |
+| L2 | Workflow Hubs | 16 | L2 (cross-hub), L3 | L1, L2 | Stateful (task) |
 | L3 | Utilities | 16 | Nothing (pure)* | L1, L2 | Stateless |
 | L4 | Extension Packs | 12 | L3 | L2 (domain match) | Config-based |
 
@@ -73,7 +73,7 @@ Override: user preference   → manual in config
 |-------|--------|
 | CREATION | plan, scout, brainstorm |
 | DEVELOPMENT | debug, fix, test, review |
-| QUALITY | sentinel, preflight, onboard |
+| QUALITY | sentinel, preflight, onboard, audit |
 | DELIVERY | deploy, marketing |
 | RESCUE | autopsy, safeguard, surgeon |
 
@@ -106,6 +106,11 @@ fix → review          (self-review complex fix)
 review → scout        (more context needed)
 surgeon → safeguard   (untested module found)
 preflight → sentinel  (security sub-check)
+audit → sentinel      (security phase delegation)
+audit → autopsy       (complexity/health phase)
+audit → dependency-doctor (deps phase delegation)
+audit → scout         (discovery phase)
+audit → journal       (save audit report)
 ```
 
 ## Context Bus
