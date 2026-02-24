@@ -4,7 +4,7 @@
 >
 > This document is the primary decision-making compass for Rune.
 > When in doubt about a design direction, a new feature, or a skill addition — consult this file first.
-> Last updated: 2026-02-24
+> Last updated: 2026-02-25
 
 ---
 
@@ -178,7 +178,7 @@ This test separates essential skills from convenience features. If the skill's a
 
 Rune operates on three time horizons. The roadmap is intentionally non-prescriptive about dates — Rune is a solo/small-team project and date-driven roadmaps create pressure to ship The Bloat.
 
-### H1 — Consolidation (Now)
+### H1 — Consolidation ✅ COMPLETE
 
 **Goal:** Make the 40 existing skills excellent before adding more.
 
@@ -189,7 +189,7 @@ Rune operates on three time horizons. The roadmap is intentionally non-prescript
 
 **Constraint:** No new L1-L3 core skills until Consolidation is complete. L4 packs are allowed.
 
-### H2 — Ecosystem (Next)
+### H2 — Ecosystem ✅ COMPLETE
 
 **Goal:** Make Rune extensible by others without compromising the core mesh.
 
@@ -200,7 +200,7 @@ Rune operates on three time horizons. The roadmap is intentionally non-prescript
 
 **Constraint:** Core mesh (L1-L3) is frozen at ≤40 skills. Growth happens in L4.
 
-### H3 — Intelligence (Later)
+### H3 — Intelligence (Next)
 
 **Goal:** Make the mesh self-aware and self-improving.
 
