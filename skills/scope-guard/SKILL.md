@@ -26,9 +26,7 @@ None — pure L3 monitoring utility.
 
 ## Called By (inbound)
 
-- `cook` (L1): drift detection during implementation
-- `plan` (L2): establish requirements baseline
-- `context-engine` (L3): effort tracking input
+- Auto-triggered by L1 orchestrators when files changed exceed plan expectations
 
 ## Workflow
 

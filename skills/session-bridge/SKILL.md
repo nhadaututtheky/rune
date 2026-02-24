@@ -31,7 +31,6 @@ None — pure state management (read/write .rune/ files).
 
 - `cook` (L1): auto-save decisions during feature implementation
 - `rescue` (L1): state management throughout refactoring
-- `team` (L1): coordinate state across parallel agents
 - `context-engine` (L3): save state before compaction
 
 ## State Files Managed

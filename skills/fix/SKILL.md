@@ -30,6 +30,8 @@ Apply code changes and fixes. Fix is the action hub of the Development Hub — i
 - `review` (L2): self-review for complex or risky fixes
 - `verification` (L3): validate fix doesn't break existing functionality
 - `docs-seeker` (L3): check correct API usage before applying changes
+- `hallucination-guard` (L3): verify imports after code changes
+- `scout` (L2): find related code before applying changes
 
 ## Called By (inbound)
 

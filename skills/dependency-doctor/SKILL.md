@@ -26,8 +26,6 @@ None — pure L3 utility using Bash for package manager commands.
 
 ## Called By (inbound)
 
-- `sentinel` (L2): dependency audit as part of security gate
-- `cook` (L1): setup phase dependency check
 - `rescue` (L1): Phase 0 dependency health assessment
 
 ## Capabilities

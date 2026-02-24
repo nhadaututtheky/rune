@@ -29,7 +29,6 @@ None — pure L3 utility using WebSearch, WebFetch, and Context7 tools.
 - `debug` (L2): lookup API docs for unclear errors
 - `fix` (L2): check correct API usage before applying changes
 - `review` (L2): verify API usage is current and correct
-- `sentinel` (L2): CVE details and security advisory lookup
 
 ## Workflow
 

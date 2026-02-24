@@ -27,6 +27,7 @@ Create marketing assets and execute launch strategy. Marketing generates landing
 - `video-creator` (L3): create demo/explainer video scripts
 - `trend-scout` (L3): market trends for positioning
 - `research` (L3): competitor analysis, SEO data
+- `browser-pilot` (L3): capture screenshots for marketing assets
 
 ## Called By (inbound)
 

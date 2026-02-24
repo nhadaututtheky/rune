@@ -27,7 +27,6 @@ None — pure L3 reasoning utility.
 
 - `debug` (L2): complex bugs that resist standard debugging
 - `brainstorm` (L2): structured frameworks for creative exploration
-- `plan` (L2): first principles analysis for architecture decisions
 
 ## Frameworks Available
 

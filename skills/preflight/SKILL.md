@@ -27,12 +27,11 @@ Pre-commit quality gate that catches "almost right" code — the kind that compi
 - `scout` (L2): find code affected by changes (dependency tracing)
 - `sentinel` (L2): security sub-check on changed files
 - `hallucination-guard` (L3): verify imports and API references exist
+- `test` (L2): run test suite as pre-commit check
 
 ## Called By (inbound)
 
 - `cook` (L1): before commit phase — mandatory gate
-- `fix` (L2): after applying fixes to verify quality
-- `review` (L2): can trigger preflight for deeper analysis
 
 ## Workflow
 

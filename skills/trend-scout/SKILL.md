@@ -27,7 +27,6 @@ None — pure L3 utility using WebSearch tools.
 
 - `brainstorm` (L2): market context for product ideation
 - `marketing` (L2): trend data for positioning and content
-- `plan` (L2): technology trend validation
 - `autopsy` (L2): identify if tech stack is outdated
 - `autopsy` (L2): check if legacy tech is still maintained
 

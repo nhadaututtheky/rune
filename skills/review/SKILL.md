@@ -29,6 +29,7 @@ Code quality review covering patterns, security, performance, and correctness. R
 - `fix` (L2): when bugs found during review — trigger fix
 - `sentinel` (L2): when security-critical code detected (auth, input, crypto)
 - `docs-seeker` (L3): verify API usage is current and correct
+- `hallucination-guard` (L3): verify imports and API calls in reviewed code
 
 ## Called By (inbound)
 

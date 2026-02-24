@@ -6,8 +6,13 @@
 |-------|------|-------|----------|----------|-------|
 | L1 | Orchestrators | 4 | L2, L3 | User only | Stateful (workflow) |
 | L2 | Workflow Hubs | 15 | L2 (cross-hub), L3 | L1, L2 | Stateful (task) |
-| L3 | Utilities | 16 | Nothing (pure) | L1, L2 | Stateless |
+| L3 | Utilities | 16 | Nothing (pure)* | L1, L2 | Stateless |
 | L4 | Extension Packs | 12 | L3 | L2 (domain match) | Config-based |
+
+### Exceptions
+
+- `team` (L1) can call other L1 orchestrators — meta-orchestration pattern.
+- *L3→L3 coordination: `context-engine` → `session-bridge`, `hallucination-guard` → `research` (documented in SKILL.md).
 
 ## Mesh Protocol
 

@@ -27,6 +27,7 @@ Meta-orchestrator for complex tasks requiring parallel workstreams. Team decompo
 # Exception: L1→L1 meta-orchestration (team is the only L1 that calls other L1s)
 - `cook` (L1): delegate feature tasks to parallel instances (worktree isolation)
 - `launch` (L1): delegate deployment/marketing when build is complete
+- `rescue` (L1): delegate legacy refactoring when rescue work detected
 
 ## Called By (inbound)
 

@@ -28,6 +28,9 @@ Legacy refactoring orchestrator for safely modernizing messy codebases. Rescue r
 - `journal` (L3): state tracking across rescue sessions
 - `plan` (L2): create refactoring plan based on autopsy findings
 - `review` (L2): verify each surgery phase
+- `session-bridge` (L3): save rescue state between sessions
+- `onboard` (L2): generate context for unfamiliar legacy project
+- `dependency-doctor` (L3): audit dependencies in legacy project
 
 ## Called By (inbound)
 

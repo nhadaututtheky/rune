@@ -26,12 +26,11 @@ Full codebase health assessment for legacy projects. Autopsy analyzes complexity
 - `scout` (L2): deep structural scan — files, LOC, entry points, imports
 - `research` (L3): identify if tech stack is outdated
 - `trend-scout` (L3): compare against current best practices
+- `journal` (L3): record health assessment findings
 
 ## Called By (inbound)
 
 - `rescue` (L1): Phase 0 RECON — assess damage before refactoring
-- `onboard` (L2): when project appears messy, get health score
-- `plan` (L2): health data informs planning decisions
 
 ## Workflow
 

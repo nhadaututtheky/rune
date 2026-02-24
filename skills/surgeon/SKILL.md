@@ -33,7 +33,6 @@ Incremental refactorer that operates on ONE module per session using proven refa
 ## Called By (inbound)
 
 - `rescue` (L1): Phase 2-N — one surgery session per module
-- `cook` (L1): when implementation requires refactoring existing code
 
 ## Refactoring Patterns
 

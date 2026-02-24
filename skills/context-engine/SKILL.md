@@ -28,9 +28,7 @@ Context window management for long sessions. Detects when context is approaching
 
 ## Called By (inbound)
 
-- `cook` (L1): auto-triggered at phase boundaries to check context health
-- `team` (L1): monitors context across parallel workstreams
-- `session-bridge` (L3): coordinates to save state before compaction
+- Auto-triggered at phase boundaries and context thresholds by L1 orchestrators
 
 ## Workflow
 
