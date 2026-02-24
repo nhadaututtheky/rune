@@ -185,6 +185,24 @@ WARN — 3 issues found (0 blocking, 3 must-acknowledge). Resolve before commit 
 4. MUST verify error messages are user-friendly and don't leak internal details
 5. MUST check that async operations have proper error handling and cleanup
 
+## Sharp Edges
+
+| Failure Mode | Severity | Mitigation |
+|---|---|---|
+| Stopping at first BLOCK finding without checking remaining files | HIGH | Aggregate all findings first — developer needs the complete list, not just the first blocker |
+| "Happy path works" accepted as sufficient | HIGH | CONSTRAINT blocks this — edge case analysis is mandatory on every function |
+| Calling verification directly instead of the test skill | MEDIUM | Preflight calls rune:test for test suite execution; rune:verification for lint/type/build checks |
+| Skipping sentinel sub-check because "this file doesn't look security-relevant" | HIGH | MUST invoke sentinel — security relevance is sentinel's job to determine, not preflight's |
+
+## Done When
+
+- Every changed function traced for null-deref, missing-await, and off-by-one
+- Error handling verified on all async functions and HTTP calls
+- Regression impact assessed — dependent files identified via scout
+- Completeness checklist passed (validation schema, loading/error states, test file)
+- Sentinel invoked and its output attached in Security section
+- Structured report emitted with PASS / WARN / BLOCK verdict and file:line for every finding
+
 ## Cost Profile
 
 ~2000-4000 tokens input, ~500-1500 tokens output. Sonnet for logic analysis quality.

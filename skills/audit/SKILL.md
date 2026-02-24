@@ -391,6 +391,24 @@ Report saved to: AUDIT-REPORT.md
 | Deps Gate | dependency-doctor report received before assembling final report | Invoke rune:dependency-doctor — do not skip |
 | Report Gate | All 7 phases completed before writing AUDIT-REPORT.md | Complete all phases, note skipped ones |
 
+## Sharp Edges
+
+| Failure Mode | Severity | Mitigation |
+|---|---|---|
+| Generating health scores from file name patterns instead of actual reads | CRITICAL | Phase 0 scout run is mandatory — never score without reading actual code |
+| Skipping a phase because "there are no changes in that area" | HIGH | All 7 phases run for every audit — partial audits produce misleading scores |
+| Health score inflation — no negative findings in any dimension | MEDIUM | CONSTRAINT: minimum 3 positive AND 3 improvement areas required |
+| Dependency-doctor or sentinel sub-call times out → skipped silently | MEDIUM | Mark phase as "incomplete — tool timeout" with N/A score, do not fabricate |
+
+## Done When
+
+- All 7 phases completed (or explicitly marked N/A with reason)
+- Health score calculated from actual file reads per dimension (not estimated)
+- At least 3 positive findings and 3 improvement areas documented
+- AUDIT-REPORT.md written to project root
+- Journal entry recorded with audit date, score, and CRITICAL count
+- Structured report emitted with overall health score and verdict
+
 ## Cost Profile
 
 ~8000-20000 tokens input, ~3000-6000 tokens output. Sonnet orchestrating; sentinel (sonnet/opus) and autopsy (opus) are the expensive sub-calls. Full audit runs 4 sub-skills. Most thorough L2 skill — run on demand, not on every cycle.

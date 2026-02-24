@@ -146,6 +146,23 @@ Produce structured output and hand off to rune:fix.
 - `path/to/related.ts` — [why it's relevant]
 ```
 
+## Sharp Edges
+
+| Failure Mode | Severity | Mitigation |
+|---|---|---|
+| Forming hypothesis from error message alone without evidence | HIGH | Evidence-first rule: read files and grep logs BEFORE hypothesizing |
+| Modifying code while "investigating" | CRITICAL | HARD-GATE: any code change during debug = out of scope — hand off to fix |
+| Marking hypothesis CONFIRMED without file:line proof | HIGH | CONFIRMED requires specific evidence cited — "it makes sense" is not evidence |
+| Exceeding 3 hypothesis cycles without escalation | MEDIUM | After 3 cycles: escalate to rune:problem-solver or rune:sequential-thinking |
+
+## Done When
+
+- Error reproduced (not assumed) with specific reproduction steps documented
+- 2-3 hypotheses formed, each marked CONFIRMED or RULED OUT with file:line evidence
+- Root cause identified at specific file:line
+- Structured Debug Report emitted
+- No code changes made — rune:fix called with the report if fix is needed
+
 ## Cost Profile
 
 ~2000-5000 tokens input, ~500-1500 tokens output. Sonnet for code analysis quality. May escalate to opus for deeply complex bugs.

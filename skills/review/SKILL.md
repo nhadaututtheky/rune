@@ -239,6 +239,23 @@ LOW       — style inconsistency, naming suggestion, minor refactor opportunity
 6. MUST escalate to sentinel if auth/crypto/secrets code is touched
 7. MUST flag untested code paths and recommend tests via rune:test
 
+## Sharp Edges
+
+| Failure Mode | Severity | Mitigation |
+|---|---|---|
+| Finding flood — 20+ findings overwhelm developer | MEDIUM | Confidence filter: only >80% confidence, consolidate similar issues per file |
+| "LGTM" without file:line evidence | HIGH | HARD-GATE blocks this — cite at least one specific item per changed file |
+| Expanding review scope beyond the diff | MEDIUM | Limit to `git diff` scope — do not creep into adjacent unchanged files |
+| Security finding without sentinel escalation | HIGH | Any auth/crypto/payment code touched → MUST call rune:sentinel |
+
+## Done When
+
+- All changed files in the diff read and analyzed
+- Every finding references specific file:line with severity label
+- Security-critical code escalated to sentinel (or confirmed not present)
+- Test coverage gaps identified and documented
+- Structured report emitted with APPROVE / REQUEST CHANGES / NEEDS DISCUSSION verdict
+
 ## Cost Profile
 
 ~3000-6000 tokens input, ~1000-2000 tokens output. Sonnet default, opus for security-critical reviews. Runs once per implementation cycle.

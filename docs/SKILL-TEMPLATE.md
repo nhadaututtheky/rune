@@ -53,6 +53,20 @@ Format:
 |------|----------|------------|
 | [Gate Name] | [What must exist before proceeding] | [Action to take] |
 
+## Sharp Edges
+
+Known failure modes for this skill. Check these before declaring done.
+
+| Failure Mode | Severity | Mitigation |
+|---|---|---|
+| [what goes wrong] | CRITICAL/HIGH/MEDIUM/LOW | [how to avoid it] |
+
+## Done When
+
+- [condition 1 — specific, verifiable]
+- [condition 2]
+- [condition 3 — structured report emitted]
+
 ## Cost Profile
 
 Estimated token usage per invocation.

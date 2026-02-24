@@ -189,6 +189,23 @@ BLOCKED — 2 critical findings must be resolved before commit.
 6. MUST flag any .env, credentials, or key files found in git-tracked directories
 7. MUST use opus model for security-critical code (auth, crypto, payments)
 
+## Sharp Edges
+
+| Failure Mode | Severity | Mitigation |
+|---|---|---|
+| False positive on test fixtures with fake secrets | MEDIUM | Verify file path — `test/`, `fixtures/`, `__mocks__/` patterns; check string entropy |
+| Skipping framework checks because "the framework handles it" | HIGH | CONSTRAINT blocks this rationalization — apply checks regardless |
+| Dependency audit tool missing → silently skipped | LOW | Report INFO "tool not found, skipping" — never skip silently |
+| Stopping after first BLOCK without aggregating all findings | MEDIUM | Complete ALL steps, aggregate ALL findings, then report — developer needs the full list |
+
+## Done When
+
+- All files in scope scanned for secret patterns
+- OWASP checks applied (SQL injection, XSS, CSRF, input validation)
+- Dependency audit ran (or "tool not found" reported as INFO)
+- Framework-specific checks applied for every detected framework
+- Structured report emitted with PASS / WARN / BLOCK verdict and all files scanned listed
+
 ## Cost Profile
 
 ~1000-3000 tokens input, ~500-1000 tokens output. Sonnet default, opus for deep audit on critical findings.
