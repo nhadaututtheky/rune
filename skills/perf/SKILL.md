@@ -28,6 +28,7 @@ Performance regression gate. Analyzes code changes for patterns that cause measu
 - `scout` (L2): find hotpath files and identify framework in use
 - `browser-pilot` (L3): run Lighthouse / Core Web Vitals for frontend projects
 - `verification` (L3): run benchmark scripts if configured (e.g. `npm run bench`)
+- `design` (L2): when Lighthouse Accessibility BLOCK — design system may lack a11y foundation
 
 ## Called By (inbound)
 
@@ -147,6 +148,36 @@ If project type is frontend:
 
 If `browser-pilot` is available and project has a URL: invoke it for Lighthouse score.
 
+**Lighthouse Score Gates** (apply to any project with a public URL):
+
+```
+Performance:    ≥ 90 → PASS  |  70–89 → WARN  |  < 70 → BLOCK
+Accessibility:  ≥ 95 → PASS  |  80–94 → WARN  |  < 80 → BLOCK
+Best Practices: ≥ 90 → PASS  |  < 90  → WARN
+SEO:            ≥ 80 → PASS  |  < 80  → WARN  (public-facing pages only)
+```
+
+**Core Web Vitals thresholds:**
+```
+LCP (Largest Contentful Paint):
+  ≤ 2.5s → PASS  |  2.5–4s → WARN  |  > 4s → BLOCK
+
+INP (Interaction to Next Paint, replaces FID):
+  ≤ 200ms → PASS  |  200–500ms → WARN  |  > 500ms → BLOCK
+
+CLS (Cumulative Layout Shift):
+  ≤ 0.1 → PASS  |  0.1–0.25 → WARN  |  > 0.25 → BLOCK
+```
+
+<HARD-GATE>
+Lighthouse Accessibility score < 80 = BLOCK regardless of other scores.
+Accessibility regressions are legal liability and cannot be auto-fixed by the AI.
+Do NOT downgrade this gate.
+</HARD-GATE>
+
+If no URL available (dev-only environment): log `INFO: no URL for Lighthouse — run manually before deploy`
+If Lighthouse MCP not installed: log `INFO: Lighthouse MCP not available — run lighthouse [url] --output json manually`
+
 ### Step 6 — Framework-Specific Checks
 
 **React:**
@@ -196,8 +227,11 @@ Emit structured report:
 - [etc.]
 
 ### Lighthouse (if ran)
-- Performance: [score]
-- LCP: [Xms] | FID: [Xms] | CLS: [score]
+- Performance: [score] [PASS|WARN|BLOCK]
+- Accessibility: [score] [PASS|WARN|BLOCK]
+- Best Practices: [score] [PASS|WARN]
+- SEO: [score] [PASS|WARN]
+- LCP: [Xs] [PASS|WARN|BLOCK] | INP: [Xms] [PASS|WARN|BLOCK] | CLS: [X] [PASS|WARN|BLOCK]
 
 ### Verdict: PASS | WARN | BLOCK
 ```

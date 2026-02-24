@@ -3,7 +3,7 @@
 ## Overview
 
 Rune is a Claude Code plugin providing an interconnected skill ecosystem.
-39 core skills | 4-layer mesh architecture.
+40 core skills | 4-layer mesh architecture.
 Philosophy: "Less skills. Deeper connections."
 
 ## Tech Stack
@@ -47,13 +47,13 @@ rune/
 
 ## Current Wave
 
-All 39 core skills built (Waves 0-5 complete + audit + perf/db/incident).
+All 40 core skills built (Waves 0-5 complete + audit + perf/db/incident + design).
 
 ### L1 Orchestrators (4)
 cook, team, launch, rescue
 
-### L2 Workflow Hubs (19)
-plan, scout, brainstorm, debug, fix, test, review, db,
+### L2 Workflow Hubs (20)
+plan, scout, brainstorm, design, debug, fix, test, review, db,
 sentinel, preflight, onboard, deploy, marketing, perf,
 autopsy, safeguard, surgeon, audit, incident
 

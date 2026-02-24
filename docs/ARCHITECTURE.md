@@ -5,7 +5,7 @@
 | Layer | Name | Count | Can Call | Called By | State |
 |-------|------|-------|----------|----------|-------|
 | L1 | Orchestrators | 4 | L2, L3 | User only | Stateful (workflow) |
-| L2 | Workflow Hubs | 19 | L2 (cross-hub), L3 | L1, L2 | Stateful (task) |
+| L2 | Workflow Hubs | 20 | L2 (cross-hub), L3 | L1, L2 | Stateful (task) |
 | L3 | Utilities | 16 | Nothing (pure)* | L1, L2 | Stateless |
 | L4 | Extension Packs | 12 | L3 | L2 (domain match) | Config-based |
 
@@ -71,7 +71,7 @@ Override: user preference   → manual in config
 
 | Group | Skills |
 |-------|--------|
-| CREATION | plan, scout, brainstorm |
+| CREATION | plan, scout, brainstorm, design |
 | DEVELOPMENT | debug, fix, test, review, db |
 | QUALITY | sentinel, preflight, onboard, audit, perf |
 | DELIVERY | deploy, marketing, incident |
@@ -136,6 +136,13 @@ incident → watchdog   (current system state — what's down)
 incident → autopsy    (root cause after containment)
 incident → journal    (record incident timeline)
 incident → sentinel   (check for security dimension)
+
+# design
+design ← cook         (frontend task detected, no design-system.md)
+design ← review       (AI anti-pattern detected in diff)
+design ← perf         (Lighthouse Accessibility BLOCK)
+design → scout        (detect platform, tokens, component library)
+design → asset-creator (generate base visual assets from design system)
 ```
 
 ## Context Bus

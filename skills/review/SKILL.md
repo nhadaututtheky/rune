@@ -35,6 +35,8 @@ Every review MUST cite at least one specific concern, suggestion, or explicit ap
 - `sentinel` (L2): when security-critical code detected (auth, input, crypto)
 - `docs-seeker` (L3): verify API usage is current and correct
 - `hallucination-guard` (L3): verify imports and API calls in reviewed code
+- `design` (L2): when UI anti-patterns suggest missing design system — recommend design skill invocation
+- `perf` (L2): when performance patterns detected in frontend diff
 
 ## Called By (inbound)
 
@@ -196,6 +198,90 @@ Apply **only** if the framework is detected in the changed files. Skip if not re
 - Mutable default arguments: `def func(items=[])` → flag HIGH
 - Missing type hints on public functions (if project uses mypy/pyright) → flag LOW
 
+## UI/UX Anti-Pattern Checks
+
+Apply **only** when `.tsx`, `.jsx`, `.svelte`, `.vue`, or `.html` files are in the diff. Skip for backend-only changes.
+
+These are the **"AI UI signature"** — patterns that make AI-generated frontends visually identifiable as non-human-designed. Flag each as MEDIUM severity.
+
+**AI_ANTIPATTERN — Purple/indigo default accent with no domain justification:**
+```tsx
+// BAD: LLM default color bias — signals "AI-generated" to experienced designers
+className="bg-indigo-600 text-white"  // every button/CTA is indigo
+// GOOD: domain-appropriate — trading → neutral dark, healthcare → trust blue,
+//        e-commerce → conversion-optimized warm. Purple is only appropriate for
+//        AI-native tools and creative platforms.
+```
+
+**AI_ANTIPATTERN — Card-grid monotony (every section is 3-col cards, zero layout variation):**
+```tsx
+// BAD: every section uses the same grid pattern
+<div className="grid grid-cols-3 gap-6">  // features
+<div className="grid grid-cols-3 gap-6">  // testimonials
+<div className="grid grid-cols-3 gap-6">  // pricing
+// GOOD: mix layouts — split sections, bento grids, full-bleed hero, list+detail
+```
+
+**AI_ANTIPATTERN — Centeritis (everything centered, no directional flow):**
+```tsx
+// BAD: no visual tension, no reading direction
+<div className="text-center flex flex-col items-center">  // hero
+<div className="text-center">  // every feature section
+// GOOD: left-align body copy, use centering intentionally for hero/CTAs only
+```
+
+**AI_ANTIPATTERN — Numeric/financial values in non-monospace font:**
+```tsx
+// BAD: prices, stats, metrics in Inter/Roboto
+<span className="text-2xl font-bold">${price}</span>
+// GOOD: monospace for all numbers that need alignment
+<span className="font-mono text-2xl font-bold">${price}</span>
+```
+
+**AI_ANTIPATTERN — Missing UI states (only happy path rendered):**
+```tsx
+// BAD: data rendering without empty/error/loading states
+{data.map(item => <Card key={item.id} {...item} />)}
+// GOOD: all 4 states covered
+{isLoading && <CardSkeleton />}
+{error && <ErrorState message={error.message} />}
+{!data.length && <EmptyState />}
+{data.map(item => <Card key={item.id} {...item} />)}
+```
+
+**Accessibility — flag as HIGH (these are WCAG 2.2 failures):**
+```tsx
+// BAD: icon button with no accessible name
+<button onClick={close}><XIcon /></button>
+// GOOD
+<button onClick={close} aria-label="Close dialog"><XIcon aria-hidden="true" /></button>
+
+// BAD: placeholder as label
+<input placeholder="Email address" type="email" />
+// GOOD
+<label htmlFor="email">Email address</label>
+<input id="email" type="email" />
+
+// BAD: removes focus ring without replacement
+className="focus:outline-none"
+// GOOD: must have focus-visible replacement
+className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+
+// BAD: color as sole information conveyor
+<span className="text-red-500">{errorMessage}</span>
+// GOOD: icon + color + text
+<span className="text-red-500 flex gap-1"><ErrorIcon aria-hidden />Error: {errorMessage}</span>
+```
+
+**WCAG 2.2 New Rules — flag as MEDIUM:**
+- `position: sticky` or `position: fixed` header/footer without `scroll-padding-top` → Focus Not Obscured (2.4.11)
+- Interactive elements with `width < 24px` or `height < 24px` without 8px spacing → Target Size (2.5.8)
+- Multi-step form re-asking for previously entered data → Redundant Entry (3.3.7)
+
+**Platform-Specific — flag as MEDIUM when platform is detectable:**
+- iOS target: solid-background cards (iOS 26 Liquid Glass deprecates this visual language) — should use translucent/blur surfaces
+- Android target: hardcoded hex colors instead of `MaterialTheme.colorScheme` tokens → not adaptive to dynamic color
+
 ## Severity Levels
 
 ```
@@ -247,6 +333,8 @@ LOW       — style inconsistency, naming suggestion, minor refactor opportunity
 | "LGTM" without file:line evidence | HIGH | HARD-GATE blocks this — cite at least one specific item per changed file |
 | Expanding review scope beyond the diff | MEDIUM | Limit to `git diff` scope — do not creep into adjacent unchanged files |
 | Security finding without sentinel escalation | HIGH | Any auth/crypto/payment code touched → MUST call rune:sentinel |
+| Skipping UI anti-pattern checks for frontend changes | MEDIUM | Any .tsx/.jsx/.svelte/.vue in diff → MUST run UI/UX Anti-Pattern Checks section |
+| Treating purple/indigo accent as "just a color choice" | MEDIUM | It is a documented AI-generated UI signature — always flag for domain justification |
 
 ## Done When
 
@@ -254,6 +342,7 @@ LOW       — style inconsistency, naming suggestion, minor refactor opportunity
 - Every finding references specific file:line with severity label
 - Security-critical code escalated to sentinel (or confirmed not present)
 - Test coverage gaps identified and documented
+- UI anti-pattern checks ran for any frontend files in diff (or confirmed not applicable)
 - Structured report emitted with APPROVE / REQUEST CHANGES / NEEDS DISCUSSION verdict
 
 ## Cost Profile
