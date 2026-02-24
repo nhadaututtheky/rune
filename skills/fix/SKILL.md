@@ -3,7 +3,7 @@ name: fix
 description: Apply code changes and fixes. Writes implementation code, applies bug fixes, and verifies changes with tests. Core action hub in the development mesh.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: sonnet
   group: development
@@ -13,7 +13,12 @@ metadata:
 
 ## Purpose
 
-Apply code changes and fixes. Fix is the action hub of the Development Hub — it writes new code, applies bug fixes, refactors existing code, and verifies changes pass tests. Tightly coupled with debug (for diagnosis) and test (for verification) in the development mesh.
+Apply code changes. Fix receives a plan, debug finding, or review finding and writes the actual code. It does NOT investigate root causes — that is rune:debug's job. Fix is the action hub: locate, change, verify, report.
+
+<HARD-GATE>
+Never change test files to make tests pass unless the tests themselves are provably wrong (wrong expected value, wrong test setup, testing a removed API). The rule: fix the CODE, not the TESTS.
+If unsure whether the test is wrong or the implementation is wrong → call `rune:debug` to investigate.
+</HARD-GATE>
 
 ## Triggers
 
@@ -47,16 +52,63 @@ Apply code changes and fixes. Fix is the action hub of the Development Hub — i
 - `fix` ← `review` — review finds bug → fix applies correction
 - `fix` → `review` — complex fix requests self-review
 
-## Workflow
+## Execution
 
-1. **Receive task** — diagnosis from debug, implementation spec from plan, or bug report from review
-2. **Understand context** — read affected files, understand dependencies and side effects
-3. **Plan changes** — determine minimal set of changes needed (YAGNI)
-4. **Apply changes** — write/edit code using immutable patterns, proper error handling
-5. **Verify locally** — call verification for lint, type-check, basic sanity
-6. **Run tests** — call test to verify changes pass existing + new tests
-7. **Self-review** — for complex fixes, call review for quality check
-8. **Report** — output summary of changes made and verification results
+### Step 1: Understand
+
+Read and fully understand the fix request before touching any file.
+
+- Read the incoming request: debug report, plan spec, or review finding
+- Identify what is broken or missing and what the expected behavior should be
+- If the request is ambiguous or root cause is unclear → call `rune:debug` before proceeding
+- Note the scope: single function, single file, or multi-file change
+
+### Step 2: Locate
+
+Find the exact files and lines to change.
+
+- Use `rune:scout` to locate the relevant files, functions, and surrounding code
+- Use `Read` to examine the specific file:line identified in the debug report or plan
+- Use `Glob` to find related files: types, tests, config that may also need updating
+- Map all touch points before writing a single line of code
+
+### Step 3: Change
+
+Apply the minimal set of changes needed.
+
+- Use `Edit` for targeted modifications to existing files
+- Use `Write` only when creating a genuinely new file is required
+- Follow project conventions: naming, immutability patterns, error handling style
+- Keep changes minimal — fix the stated problem, do not refactor unrelated code (YAGNI)
+- Never use `any` in TypeScript; never use bare `except:` in Python
+- If a new import is needed → note it for Step 5 hallucination-guard check
+
+### Step 4: Verify
+
+Confirm the change works and nothing is broken.
+
+- Use `Bash` to run the relevant tests: the specific failing test first, then the full suite
+- If tests fail after the fix:
+  - Investigate with `rune:debug` (max 3 debug loops before escalating)
+  - Do NOT change test files to make tests pass — fix the implementation code
+- If project has a type-check command, run it via `Bash`
+- If project has a lint command, run it via `Bash`
+
+### Step 5: Self-Review
+
+Verify correctness of the changes just made.
+
+- Call `rune:hallucination-guard` to verify all imports introduced or modified are real and correctly named
+- Call `rune:docs-seeker` if any external API, library method, or SDK call was added or changed
+- For complex or risky fixes (auth, data mutation, async logic): call `rune:review` for a full quality check
+
+### Step 6: Report
+
+Produce a structured summary of all changes made.
+
+- List every file modified and a one-line description of what changed
+- Include verification results (tests, types, lint)
+- Note any follow-up work if the fix is partial or has known limitations
 
 ## Output Format
 

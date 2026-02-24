@@ -3,7 +3,7 @@ name: deploy
 description: Deploy application to target platform. Handles Vercel, Netlify, AWS, GCP, DigitalOcean, and VPS deployments with pre-deploy verification and health checks.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: sonnet
   group: delivery
@@ -15,40 +15,101 @@ metadata:
 
 Deploy applications to target platforms. Handles the full deployment flow — environment configuration, build, push, verification, and rollback if needed. Supports Vercel, Netlify, AWS, GCP, DigitalOcean, and custom VPS via SSH.
 
-## Triggers
-
-- Called by `launch` as part of launch pipeline
-- `/rune deploy` — manual deployment
-
-## Calls (outbound)
-
-- `test` (L2): pre-deploy verification (full test suite)
-- `sentinel` (L2): pre-deploy security check
-- `browser-pilot` (L3): verify live deployment visually
-- `verification` (L3): post-deploy health checks
-- `watchdog` (L3): setup monitoring after deploy
+<HARD-GATE>
+- Tests MUST pass (via `rune:verification`) before deploy runs
+- Sentinel MUST pass (no CRITICAL issues) before deploy runs
+- Both are non-negotiable. Failure = stop + report, never skip
+</HARD-GATE>
 
 ## Called By (inbound)
 
 - `launch` (L1): deployment phase of launch pipeline
 - User: `/rune deploy` direct invocation
 
+## Calls (outbound)
+
+- `verification` (L2): pre-deploy tests + build check
+- `sentinel` (L2): pre-deploy security scan
+- `browser-pilot` (L3): verify live deployment visually
+- `watchdog` (L3): setup post-deploy monitoring
+
 ## Cross-Hub Connections
 
-- `deploy` → `test` — pre-deploy verification
-- `deploy` → `sentinel` — pre-deploy security check
+- `deploy` → `verification` — pre-deploy tests + build must pass
+- `deploy` → `sentinel` — security must pass before push
 
-## Workflow
+## Execution Steps
 
-1. **Detect target** — identify deployment platform from config
-2. **Pre-deploy checks** — call test for full suite, sentinel for security
-3. **Build** — run project build command
-4. **Deploy** — push to target platform
-5. **Verify** — browser-pilot screenshots, verification health checks
-6. **Monitor** — watchdog sets up post-deploy monitoring
-7. **Report** — deployment URL, status, health
+### Step 1 — Pre-deploy checks (HARD-GATE)
 
-## Output Format
+Call `rune:verification` to run the full test suite and build.
+
+```
+If verification fails → STOP. Do NOT proceed. Report failure with test output.
+```
+
+Call `rune:sentinel` to run security scan.
+
+```
+If sentinel returns CRITICAL issues → STOP. Do NOT proceed. Report issues.
+```
+
+Both gates MUST pass. No exceptions.
+
+### Step 2 — Detect platform
+
+Use `Bash` to inspect the project root for platform config files:
+
+```bash
+ls vercel.json netlify.toml Dockerfile fly.toml 2>/dev/null
+cat package.json | grep -A5 '"scripts"'
+```
+
+Map findings to platform:
+
+| File found | Platform |
+|---|---|
+| `vercel.json` | Vercel |
+| `netlify.toml` | Netlify |
+| `fly.toml` | Fly.io |
+| `Dockerfile` | Docker / VPS |
+| `package.json` deploy script | npm deploy |
+
+If no config found, ask the user which platform to target before continuing.
+
+### Step 3 — Deploy
+
+Use `Bash` to run the platform-specific deploy command:
+
+| Platform | Command |
+|---|---|
+| Vercel | `vercel --prod` |
+| Netlify | `netlify deploy --prod` |
+| Fly.io | `fly deploy` |
+| Docker | `docker build -t app . && docker push <registry>/app` |
+| npm script | `npm run deploy` |
+
+Capture full command output. Extract deployed URL from output.
+
+### Step 4 — Verify deployment
+
+Use `Bash` to check the deployed URL returns HTTP 200:
+
+```bash
+curl -o /dev/null -s -w "%{http_code}" <deployed-url>
+```
+
+If status is not 200 → flag as WARNING, do not treat as hard failure unless 5xx.
+
+If `rune:browser-pilot` is available, call it to take a screenshot of the deployed URL for visual confirmation.
+
+### Step 5 — Monitor
+
+Call `rune:watchdog` to set up post-deploy monitoring alerts on the deployed URL.
+
+### Step 6 — Report
+
+Output the deploy report:
 
 ```
 ## Deploy Report
@@ -58,10 +119,14 @@ Deploy applications to target platforms. Handles the full deployment flow — en
 - **Build Time**: [duration]
 
 ### Checks
-- Tests: [passed]/[total]
-- Health: [status]
-- Performance: [Lighthouse score if available]
+- Tests: passed | failed
+- Security: passed | failed ([count] issues)
+- HTTP Status: [code]
+- Visual: [screenshot path if browser-pilot ran]
+- Monitoring: active | skipped
 ```
+
+If any step failed, include the error output and recommended next action.
 
 ## Cost Profile
 

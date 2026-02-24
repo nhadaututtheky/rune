@@ -3,7 +3,7 @@ name: team
 description: Multi-agent meta-orchestrator. Decomposes large tasks into parallel workstreams, assigns to isolated cook instances, coordinates merging. Uses opus for strategic coordination.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L1
   model: opus
   group: orchestrator
@@ -14,6 +14,12 @@ metadata:
 ## Purpose
 
 Meta-orchestrator for complex tasks requiring parallel workstreams. Team decomposes large features into independent subtasks, assigns each to an isolated cook instance (using git worktrees), coordinates progress, and merges results. Uses opus for strategic decomposition and conflict resolution.
+
+<HARD-GATE>
+- MAX 3 PARALLEL AGENTS: Never launch more than 3 Task calls simultaneously. If more than 3 streams exist, batch them.
+- No merge without conflict resolution complete (Phase 3 clean).
+- Full integration tests MUST run before reporting success.
+</HARD-GATE>
 
 ## Triggers
 
@@ -33,43 +39,200 @@ Meta-orchestrator for complex tasks requiring parallel workstreams. Team decompo
 
 - User: `/rune team <task>` direct invocation only
 
-## Workflow
+---
+
+## Execution
+
+### Step 0 — Initialize TodoWrite
 
 ```
-/rune team "refactor auth system and add OAuth providers"
-│
-├─ Phase 1: DECOMPOSE
-│  ├─ scout → map module boundaries, identify independence
-│  └─ plan → break into parallel workstreams
-│       ├─ Stream A: "refactor JWT middleware" (independent)
-│       ├─ Stream B: "add Google OAuth" (independent)
-│       └─ Stream C: "add GitHub OAuth" (depends on B patterns)
-│
-├─ Phase 2: ASSIGN
-│  ├─ cook(A) → worktree-a (parallel)
-│  ├─ cook(B) → worktree-b (parallel)
-│  └─ cook(C) → waits for B, then worktree-c
-│
-├─ Phase 3: COORDINATE
-│  ├─ monitor progress across streams
-│  └─ resolve conflicts if streams touch same files
-│
-├─ Phase 4: MERGE
-│  ├─ merge worktree-a → main
-│  ├─ merge worktree-b → main
-│  └─ merge worktree-c → main (resolve conflicts)
-│
-└─ Phase 5: VERIFY
-   └─ full integration test suite on merged result
+TodoWrite([
+  { content: "DECOMPOSE: Scout modules and plan workstreams", status: "pending", activeForm: "Decomposing task into workstreams" },
+  { content: "ASSIGN: Launch parallel cook agents in worktrees", status: "pending", activeForm: "Assigning streams to cook agents" },
+  { content: "COORDINATE: Monitor streams, resolve conflicts", status: "pending", activeForm: "Coordinating parallel streams" },
+  { content: "MERGE: Merge worktrees back to main", status: "pending", activeForm: "Merging worktrees to main" },
+  { content: "VERIFY: Run integration tests on merged result", status: "pending", activeForm: "Verifying integration" }
+])
 ```
 
-## Parallel Execution Rules
+---
+
+### Phase 1 — DECOMPOSE
+
+Mark todo[0] `in_progress`.
+
+**1a. Map module boundaries.**
 
 ```
-Independent streams  → PARALLEL (max 3 sonnet agents)
-Dependent streams    → SEQUENTIAL (respecting dependency order)
-All streams done     → MERGE sequentially (avoid conflicts)
+REQUIRED SUB-SKILL: rune:scout
+→ Invoke `scout` with the full task description.
+→ Scout returns: module list, file ownership map, dependency graph.
+→ Capture: which modules are independent vs. coupled.
 ```
+
+**1b. Break into workstreams.**
+
+```
+REQUIRED SUB-SKILL: rune:plan
+→ Invoke `plan` with scout output + task description.
+→ Plan returns: ordered list of workstreams, each with:
+    - stream_id: "A" | "B" | "C" (max 3)
+    - task: specific sub-task description
+    - files: list of files this stream owns
+    - depends_on: [] | ["B"] (empty = parallel-safe)
+```
+
+**1c. Validate decomposition.**
+
+```
+GATE CHECK — before proceeding:
+  [ ] Each stream owns disjoint file sets (no overlap)
+  [ ] Dependent streams have explicit depends_on declared
+  [ ] Total streams ≤ 3
+
+If any check fails → re-invoke plan with conflict notes.
+```
+
+Mark todo[0] `completed`.
+
+---
+
+### Phase 2 — ASSIGN
+
+Mark todo[1] `in_progress`.
+
+**2a. Launch parallel streams.**
+
+Launch independent streams (depends_on: []) in parallel using Task tool with worktree isolation:
+
+```
+For each stream where depends_on == []:
+  Task(
+    subagent_type: "general-purpose",
+    model: "sonnet",
+    isolation: "worktree",
+    prompt: "Cook task: [stream.task]. Files in scope: [stream.files]. Return cook report on completion."
+  )
+```
+
+**2b. Launch dependent streams sequentially.**
+
+```
+For each stream where depends_on != []:
+  WAIT for all depends_on streams to complete.
+  Then launch:
+  Task(
+    subagent_type: "general-purpose",
+    model: "sonnet",
+    isolation: "worktree",
+    prompt: "Cook task: [stream.task]. Files in scope: [stream.files]. Patterns from stream [depends_on] are available in worktree. Return cook report."
+  )
+```
+
+**2c. Collect cook reports.**
+
+Wait for all Task calls to return. Store each cook report keyed by stream_id.
+
+```
+Error recovery:
+  If a Task fails or returns error report:
+    → Log failure: "Stream [id] failed: [error]"
+    → If stream is non-blocking: continue with other streams
+    → If stream is blocking (others depend on it): STOP, report to user with partial results
+```
+
+Mark todo[1] `completed`.
+
+---
+
+### Phase 3 — COORDINATE
+
+Mark todo[2] `in_progress`.
+
+**3a. Check for file conflicts.**
+
+```
+Bash: git diff --name-only [worktree-a-branch] [worktree-b-branch]
+```
+
+If overlapping files detected between completed worktrees:
+- Identify the conflict source from cook reports
+- Determine which stream's version takes precedence (later stream wins by default)
+- Flag for manual resolution if ambiguous — present to user before merge
+
+**3b. Review cook report summaries.**
+
+For each completed stream, verify cook report contains:
+- Files modified
+- Tests passing
+- No unresolved TODOs or sentinel CRITICAL flags
+
+```
+Error recovery:
+  If cook report contains sentinel CRITICAL:
+    → BLOCK this stream from merge
+    → Report: "Stream [id] blocked: CRITICAL issue in [file] — [details]"
+    → Present to user for decision before continuing
+```
+
+Mark todo[2] `completed`.
+
+---
+
+### Phase 4 — MERGE
+
+Mark todo[3] `in_progress`.
+
+**4a. Merge each worktree sequentially.**
+
+```
+For each stream in dependency order (independent first, dependent last):
+
+  Bash: git checkout main
+  Bash: git merge --no-ff [worktree-branch] -m "merge: stream [id] — [stream.task]"
+
+  If merge conflict:
+    Bash: git status  (identify conflicting files)
+    → Resolve using cook report guidance (the stream's intended change wins)
+    Bash: git add [resolved-files]
+    Bash: git merge --continue
+```
+
+**4b. Cleanup worktrees.**
+
+```
+Bash: git worktree remove [worktree-path] --force
+```
+
+(Repeat for each worktree after its branch is merged.)
+
+Mark todo[3] `completed`.
+
+---
+
+### Phase 5 — VERIFY
+
+Mark todo[4] `in_progress`.
+
+```
+REQUIRED SUB-SKILL: rune:verification
+→ Invoke `verification` on the merged main branch.
+→ verification runs: type check, lint, unit tests, integration tests.
+→ Capture: passed count, failed count, coverage %.
+```
+
+```
+Error recovery:
+  If verification fails:
+    → Report: "Integration failure after merge: [failing tests]"
+    → Identify which stream introduced the failure (git bisect if needed)
+    → Do NOT mark task complete
+    → Present fix options to user
+```
+
+Mark todo[4] `completed`.
+
+---
 
 ## Output Format
 
@@ -89,6 +252,17 @@ All streams done     → MERGE sequentially (avoid conflicts)
 ### Integration
 - Merge conflicts: [count]
 - Integration tests: [passed]/[total]
+- Coverage: [%]
+```
+
+---
+
+## Parallel Execution Rules
+
+```
+Independent streams  → PARALLEL (max 3 sonnet agents)
+Dependent streams    → SEQUENTIAL (respecting dependency order)
+All streams done     → MERGE sequentially (avoid conflicts)
 ```
 
 ## Cost Profile

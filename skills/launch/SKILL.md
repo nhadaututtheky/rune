@@ -3,7 +3,7 @@ name: launch
 description: Deploy + marketing orchestrator. Runs the full launch pipeline — pre-flight tests, deployment, live verification, marketing asset creation, and announcement.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L1
   model: sonnet
   group: orchestrator
@@ -14,6 +14,10 @@ metadata:
 ## Purpose
 
 Orchestrate the full deployment and marketing pipeline. Launch coordinates testing, deployment, live site verification, marketing asset creation, and public announcement. One command to go from "code ready" to "product live and marketed."
+
+<HARD-GATE>
+- ALL tests must pass before any deploy attempt. Zero exceptions. Block deploy if any of: tests failing, TypeScript errors present, build fails, or sentinel CRITICAL issues detected.
+</HARD-GATE>
 
 ## Triggers
 
@@ -34,27 +38,188 @@ Orchestrate the full deployment and marketing pipeline. Launch coordinates testi
 - User: `/rune launch` direct invocation
 - `team` (L1): when team delegates launch phase
 
-## Workflow
+---
+
+## Execution
+
+### Step 0 — Initialize TodoWrite
 
 ```
-/rune launch
-│
-├─ Phase 1: PRE-FLIGHT
-│  └─ test → full test suite + verification checks
-│
-├─ Phase 2: DEPLOY
-│  └─ deploy → push to target platform (Vercel, AWS, etc.)
-│
-├─ Phase 3: VERIFY LIVE
-│  ├─ browser-pilot → screenshot live site
-│  └─ watchdog → health checks + monitoring setup
-│
-├─ Phase 4: MARKET
-│  └─ marketing → landing copy, social banners, SEO meta
-│
-└─ Phase 5: ANNOUNCE
-   └─ marketing → publish content, social posts
+TodoWrite([
+  { content: "PRE-FLIGHT: Run full test suite and verification", status: "pending", activeForm: "Running pre-flight checks" },
+  { content: "DEPLOY: Detect platform and push to production", status: "pending", activeForm: "Deploying to production" },
+  { content: "VERIFY LIVE: Check live URL and setup monitoring", status: "pending", activeForm: "Verifying live deployment" },
+  { content: "MARKET: Generate landing copy and social assets", status: "pending", activeForm: "Generating marketing assets" },
+  { content: "ANNOUNCE: Present all marketing assets to user", status: "pending", activeForm: "Preparing announcement" }
+])
 ```
+
+---
+
+### Phase 1 — PRE-FLIGHT
+
+Mark todo[0] `in_progress`.
+
+```
+REQUIRED SUB-SKILL: rune:verification
+→ Invoke `verification` with scope: "full".
+→ verification runs: type check, lint, unit tests, integration tests, build.
+→ Capture: passed count, failed count, coverage %, build output.
+```
+
+```
+HARD-GATE CHECK — block deploy if ANY of:
+  [ ] Tests failing (failed count > 0)
+  [ ] TypeScript errors present
+  [ ] Build fails
+  [ ] sentinel CRITICAL issues detected (invoke rune:sentinel if not already run)
+
+If any check fails:
+  → STOP immediately
+  → Report: "PRE-FLIGHT FAILED — deploy blocked"
+  → List all failures with file + line references
+  → Do NOT proceed to Phase 2
+```
+
+Mark todo[0] `completed` only when ALL checks pass.
+
+---
+
+### Phase 2 — DEPLOY
+
+Mark todo[1] `in_progress`.
+
+**2a. Detect deployment platform.**
+
+```
+Bash: ls package.json
+Read: package.json  (check "scripts" for deploy, build, start commands)
+
+Platform detection (in order):
+  1. Check package.json scripts for "vercel" → platform = Vercel
+  2. Check package.json scripts for "netlify" → platform = Netlify
+  3. Check for vercel.json or .vercel/ dir → platform = Vercel
+  4. Check for netlify.toml → platform = Netlify
+  5. Check for Dockerfile or fly.toml → platform = custom/fly.io
+  6. Fallback: ask user for deploy command before continuing
+```
+
+**2b. Execute deploy command.**
+
+```
+Vercel:
+  Bash: npx vercel --prod
+  Capture: deployment URL from stdout
+
+Netlify:
+  Bash: npx netlify deploy --prod --dir=[build_output_dir]
+  Capture: deployment URL from stdout
+
+Custom (package.json script):
+  Bash: npm run deploy
+  Capture: deployment URL or status from stdout
+
+Fly.io:
+  Bash: flyctl deploy
+  Capture: deployment URL from stdout
+```
+
+```
+Error recovery:
+  If deploy command exits non-zero:
+    → Capture full stderr
+    → Report: "DEPLOY FAILED: [error summary]"
+    → Do NOT proceed to Phase 3
+    → Present raw error to user for diagnosis
+```
+
+Mark todo[1] `completed` when deploy returns a live URL.
+
+---
+
+### Phase 3 — VERIFY LIVE
+
+Mark todo[2] `in_progress`.
+
+**3a. Verify live site.**
+
+```
+REQUIRED SUB-SKILL: rune:browser-pilot
+→ Invoke `browser-pilot` with the deployed URL.
+→ browser-pilot checks: page loads (HTTP 200), no console errors, critical UI elements visible.
+→ Capture: screenshot, status code, load time, any JS errors.
+```
+
+```
+Error recovery:
+  If browser-pilot returns non-200 or JS errors:
+    → Report: "LIVE VERIFY FAILED: [details]"
+    → Do NOT proceed to Phase 4
+    → Present screenshot + error log to user
+```
+
+**3b. Setup monitoring.**
+
+```
+REQUIRED SUB-SKILL: rune:watchdog
+→ Invoke `watchdog` with: url=[deployed URL], interval=5min, alert_on=[5xx, timeout].
+→ watchdog configures health check endpoint monitoring.
+→ Capture: monitoring confirmation + health endpoint path.
+```
+
+Mark todo[2] `completed` when live verification passes and monitoring is active.
+
+---
+
+### Phase 4 — MARKET
+
+Mark todo[3] `in_progress`.
+
+**4a. Generate marketing assets.**
+
+```
+REQUIRED SUB-SKILL: rune:marketing
+→ Invoke `marketing` with: project context, deployed URL, key features.
+→ marketing generates:
+    - Landing page hero copy (headline, subheadline, CTA)
+    - Twitter/X announcement thread (3-5 tweets)
+    - LinkedIn post
+    - Product Hunt tagline + description
+    - SEO meta tags (title, description, og:image alt)
+→ Capture: all generated copy as structured output.
+```
+
+**4b. Optional — launch video.**
+
+```
+If user requested video content:
+  REQUIRED SUB-SKILL: rune:video-creator
+  → Invoke `video-creator` with: deployed URL, feature list, target platform.
+  → Capture: video script + asset manifest.
+```
+
+Mark todo[3] `completed` when all requested assets are generated.
+
+---
+
+### Phase 5 — ANNOUNCE
+
+Mark todo[4] `in_progress`.
+
+Present all assets to user in structured format. Do not auto-publish — user approves before posting.
+
+```
+Present:
+  - Deployed URL (clickable)
+  - Monitoring status
+  - All marketing copy blocks (ready to copy-paste)
+  - Video script (if generated)
+  - Next steps checklist
+```
+
+Mark todo[4] `completed`.
+
+---
 
 ## Output Format
 
@@ -65,16 +230,22 @@ Orchestrate the full deployment and marketing pipeline. Launch coordinates testi
 - **Tests**: [passed]/[total]
 
 ### Deployment
-- Platform: [target]
-- Build: [status]
+- Platform: [Vercel | Netlify | custom]
+- Build: [success | failed]
 - URL: [live URL]
 
 ### Monitoring
 - Health endpoint: [path]
-- Error tracking: [configured]
+- Check interval: 5min
+- Watchdog: active | failed
 
 ### Marketing Assets
-- [list of generated assets]
+- Hero copy: [ready | skipped]
+- Twitter thread: [ready | skipped]
+- LinkedIn post: [ready | skipped]
+- Product Hunt: [ready | skipped]
+- SEO meta: [ready | skipped]
+- Launch video: [ready | skipped]
 ```
 
 ## Cost Profile

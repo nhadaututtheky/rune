@@ -3,7 +3,7 @@ name: safeguard
 description: Build safety nets before refactoring. Creates characterization tests, boundary markers, config freezes, and rollback points.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: sonnet
   group: rescue
@@ -15,43 +15,127 @@ metadata:
 
 Build safety nets before any refactoring begins. Safeguard creates characterization tests that capture current behavior, adds boundary markers to distinguish legacy from new code, freezes config files, and creates git rollback points. Nothing gets refactored without safeguard running first.
 
-## Triggers
-
-- Called by `rescue` Phase 1 SAFETY NET
-- Called by `surgeon` when untested module encountered
-
-## Calls (outbound)
-
-- `scout` (L2): find all entry points and public interfaces
-- `test` (L2): write characterization tests capturing current behavior
-- `verification` (L3): verify safety net is solid
+<HARD-GATE>
+Characterization tests MUST pass on the current (unmodified) code before any refactoring starts. If they do not pass, safeguard is not complete.
+</HARD-GATE>
 
 ## Called By (inbound)
 
 - `rescue` (L1): Phase 1 SAFETY NET — build protection before surgery
 - `surgeon` (L2): untested module found during surgery
 
+## Calls (outbound)
+
+- `scout` (L2): find all entry points and public interfaces of the target module
+- `verification` (L3): verify characterization tests pass on current code
+
 ## Cross-Hub Connections
 
 - `surgeon` → `safeguard` — untested module found during surgery
 
-## Workflow
+## Execution Steps
 
-1. **Audit existing tests** — scout finds test files, assess coverage gaps
-2. **Characterization tests** — test writes tests capturing CURRENT behavior (not ideal behavior)
-3. **Boundary markers** — add comments: `@legacy`, `@new-v2`, `@bridge`, `@do-not-touch`
-4. **Config freeze** — lock tsconfig, eslint, lockfile versions
-5. **Rollback point** — `git tag rune-rescue-baseline`
-6. **Verify** — verification confirms all tests pass
+### Step 1 — Identify module boundaries
+
+Call `rune:scout` targeting the specific module. Ask scout to return:
+- All public functions, classes, and exported symbols
+- All files that import from this module (consumers)
+- All files this module imports from (dependencies)
+- Existing test files for this module (if any)
+
+Use `Read` to open the module entry file and confirm the public interface.
+
+### Step 2 — Write characterization tests
+
+Create a test file at `tests/char/<module-name>.test.ts` (or `.js`, `.py` matching project convention).
+
+Use `Write` to create the characterization test file. Rules for characterization tests:
+- Tests MUST capture what the code CURRENTLY does, not what it should do
+- Include edge cases that currently produce surprising output — test for that actual output
+- Do NOT fix bugs in characterization tests — if the current code returns wrong data, test for that wrong data
+- Cover every public function in the module
+- Include at least one integration test calling the module as an external consumer would
+
+Example structure:
+```typescript
+// tests/char/<module>.test.ts
+// CHARACTERIZATION TESTS — DO NOT MODIFY without running safeguard again
+// These tests capture existing behavior as of: [date]
+
+describe('<module> — characterization', () => {
+  it('existing behavior: [function] with [input] returns [actual output]', () => {
+    // ...
+  })
+})
+```
+
+### Step 3 — Add boundary markers
+
+Use `Edit` to add boundary comments at the top of the module file and at key function boundaries:
+
+```typescript
+// @legacy — rune-safeguard [date] — do not refactor without characterization tests passing
+```
+
+For functions flagged by autopsy as high-risk, add:
+```typescript
+// @do-not-touch — coupled to [module], change both or neither
+```
+
+For planned new implementations, mark insertion points:
+```typescript
+// @bridge — new-v2 will replace this interface
+```
+
+### Step 4 — Config freeze
+
+Use `Bash` to record current config state:
+
+```bash
+mkdir -p .rune
+cp tsconfig.json .rune/tsconfig.frozen.json 2>/dev/null || true
+cp .eslintrc* .rune/ 2>/dev/null || true
+cp package-lock.json .rune/package-lock.frozen.json 2>/dev/null || true
+echo "Config frozen at $(date)" > .rune/freeze.log
+```
+
+This preserves the baseline config so surgery can be verified against it.
+
+### Step 5 — Create rollback point
+
+Use `Bash` to create a git tag:
+
+```bash
+git add -A
+git commit -m "chore: safeguard checkpoint before [module] surgery" --allow-empty
+git tag rune-safeguard-<module>
+```
+
+Replace `<module>` with the actual module name. Confirm the tag was created.
+
+### Step 6 — Verify
+
+Call `rune:verification` and explicitly pass the characterization test file path.
+
+```
+If characterization tests fail on the CURRENT (unchanged) code → STOP.
+Fix the tests to match actual behavior before proceeding.
+Characterization tests MUST pass on current code. This is non-negotiable.
+```
+
+Only after verification passes, declare the safety net complete.
 
 ## Output Format
 
 ```
 ## Safeguard Report
-- **Tests Added**: [count]
+- **Module**: [module name]
+- **Tests Added**: [count] characterization tests
 - **Coverage**: [before]% → [after]%
-- **Markers Added**: [count]
-- **Rollback Tag**: rune-rescue-baseline
+- **Markers Added**: [count] boundary comments
+- **Rollback Tag**: rune-safeguard-[module]
+- **Config Frozen**: [list of files in .rune/]
+- **Hard Gate**: PASSED — all characterization tests pass on current code
 
 ### Characterization Tests
 - `tests/char/[module].test.ts` — [count] tests capturing current behavior
@@ -59,9 +143,13 @@ Build safety nets before any refactoring begins. Safeguard creates characterizat
 ### Boundary Markers
 - `@legacy`: [count] files marked
 - `@do-not-touch`: [count] files protected
+- `@bridge`: [count] insertion points marked
 
 ### Config Frozen
-- [list of locked config files]
+- [list of locked config files in .rune/]
+
+### Next Step
+Safe to proceed with: `rune:surgeon` targeting [module]
 ```
 
 ## Cost Profile

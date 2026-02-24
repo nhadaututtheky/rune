@@ -3,7 +3,7 @@ name: debug
 description: Root cause analysis for bugs and unexpected behavior. Traces errors through code, uses structured reasoning, and hands off to fix when cause is found. Core of the debug↔fix mesh.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: sonnet
   group: development
@@ -13,7 +13,15 @@ metadata:
 
 ## Purpose
 
-Root cause analysis for bugs and unexpected behavior. Debug is the diagnostic engine of the Development Hub — it traces errors through code, analyzes stack traces, uses structured reasoning frameworks, and identifies the exact cause before handing off to fix. Tightly coupled with fix in a bidirectional mesh.
+Root cause analysis ONLY. Debug investigates — it does NOT fix. It traces errors through code, analyzes stack traces, forms and tests hypotheses, and identifies the exact cause before handing off to rune:fix.
+
+<HARD-GATE>
+Do NOT fix the code. Debug investigates only. Any code change is out of scope.
+If root cause cannot be identified after 3 hypothesis cycles:
+- Escalate to `rune:problem-solver` for structured 5-Whys or Fishbone analysis
+- Or escalate to `rune:sequential-thinking` for multi-variable analysis
+- Report escalation in the Debug Report with all evidence gathered so far
+</HARD-GATE>
 
 ## Triggers
 
@@ -44,16 +52,64 @@ Root cause analysis for bugs and unexpected behavior. Debug is the diagnostic en
 - `debug` ↔ `fix` — bidirectional: debug finds cause → fix applies, fix can't determine cause → debug investigates
 - `debug` ← `test` — test fails → debug investigates
 
-## Workflow
+## Execution
 
-1. **Receive error report** — stack trace, error message, reproduction steps, affected files
-2. **Reproduce** — verify the error exists and is consistent
-3. **Trace** — call scout to find related code, trace data flow through affected functions
-4. **Analyze** — examine error patterns, check common causes (null refs, async issues, type mismatches)
-5. **Reason** — if complex, call problem-solver for structured analysis (5 Whys, Fishbone)
-6. **Lookup** — if API-related, call docs-seeker for documentation verification
-7. **Diagnose** — identify root cause with confidence level
-8. **Hand off** — pass diagnosis to fix with suggested solution, or escalate to L1 if stuck
+### Step 1: Reproduce
+
+Understand and confirm the error described in the request.
+
+- Read the error message, stack trace, and reproduction steps
+- Identify which environment it occurs in (dev/prod, browser/server)
+- Confirm the error is consistent and reproducible before proceeding
+- If no reproduction steps provided, ask for them or attempt the most likely path
+
+### Step 2: Gather Evidence
+
+Use tools to collect facts — do NOT guess yet.
+
+- Use `Grep` to search codebase for the exact error string or related error codes
+- Use `Read` to examine stack trace files, log files, or the specific file:line mentioned
+- Use `Glob` to find related files (config, types, tests) that may be involved
+- Use `rune:browser-pilot` if the issue is UI-related (console errors, network failures, visual bugs)
+- Use `rune:scout` to trace imports and identify all modules touched by the affected code path
+
+### Step 3: Form Hypotheses
+
+List exactly 2-3 possible root causes — no more, no fewer.
+
+- Each hypothesis must be specific (name the file, function, or line if possible)
+- Order by likelihood (most likely first)
+- Format:
+  - H1: [specific hypothesis — file/function/pattern]
+  - H2: [specific hypothesis]
+  - H3: [specific hypothesis]
+
+### Step 4: Test Hypotheses
+
+Test each hypothesis systematically using tools.
+
+- Use `Read` to inspect the suspected file/function for each hypothesis
+- Use `Bash` to run targeted tests: a single failing test, a type check, a linter on the file
+- Use `rune:browser-pilot` for UI hypotheses (inspect DOM, network, console)
+- For each hypothesis: mark CONFIRMED / RULED OUT with evidence
+- If all 3 hypotheses are ruled out → go back to Step 2 to gather more evidence
+- Maximum 3 hypothesis cycles. If still unresolved after 3 cycles → escalate (see Hard-Gate)
+
+### Step 5: Identify Root Cause
+
+Narrow to the single actual cause.
+
+- State the confirmed hypothesis and the exact evidence that proves it
+- Identify the specific file, line number, and code construct responsible
+- Note any contributing factors (environment, data, timing, config)
+
+### Step 6: Report
+
+Produce structured output and hand off to rune:fix.
+
+- Write the Debug Report (see Output Format below)
+- Call `rune:fix` with the full report if fix is needed
+- Do NOT apply any code changes — report only
 
 ## Output Format
 
@@ -74,7 +130,7 @@ Root cause analysis for bugs and unexpected behavior. Debug is the diagnostic en
 2. [observation supporting diagnosis]
 
 ### Suggested Fix
-[Description of what needs to change]
+[Description of what needs to change — no code, just direction]
 
 ### Related Code
 - `path/to/related.ts` — [why it's relevant]

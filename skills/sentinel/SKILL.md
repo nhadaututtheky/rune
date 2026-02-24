@@ -3,7 +3,7 @@ name: sentinel
 description: Automated security gatekeeper. Blocks unsafe code before commit — secret scanning, OWASP top 10, dependency audit, permission checks. A GATE, not a suggestion.
 metadata:
   author: runedev
-  version: "0.1.0"
+  version: "0.2.0"
   layer: L2
   model: sonnet
   group: quality
@@ -14,6 +14,10 @@ metadata:
 ## Purpose
 
 Automated security gatekeeper that blocks unsafe code BEFORE commit. Unlike `review` which suggests improvements, sentinel is a hard gate — it BLOCKS on critical findings. Runs secret scanning, OWASP top 10 pattern detection, dependency auditing, and destructive command checks. Escalates to opus for deep security audit when critical patterns detected.
+
+<HARD-GATE>
+If status is BLOCK, output the report and STOP. Do not hand off to commit. The calling skill (`cook`, `preflight`, `deploy`) must halt until the developer fixes all BLOCK findings and re-runs sentinel.
+</HARD-GATE>
 
 ## Triggers
 
@@ -35,43 +39,12 @@ Automated security gatekeeper that blocks unsafe code BEFORE commit. Unlike `rev
 - `deploy` (L2): pre-deployment security check
 - `preflight` (L2): security sub-check in quality gate
 
-## Workflow
-
-1. **Receive scan request** with list of changed files or full codebase path
-2. **Secret scan** — regex patterns for API keys, tokens, credentials, entropy analysis for random strings, .env file reference check
-3. **OWASP top 10 scan** — SQL injection patterns, XSS patterns (innerHTML, dangerouslySetInnerHTML), CSRF protection, input validation gaps
-4. **Dependency audit** — run package manager audit commands, check for known CVEs, verify license compatibility
-5. **Permission check** — detect destructive commands (rm -rf, DROP TABLE), production database access, file operations outside project
-6. **Generate report** with severity levels and blocking decisions
-
 ## Severity Levels
 
 ```
 BLOCK    — commit MUST NOT proceed (secrets found, critical CVE, SQL injection)
 WARN     — commit can proceed but developer must acknowledge (medium CVE, missing validation)
 INFO     — informational finding, no action required (best practice suggestion)
-```
-
-## Output Format
-
-```
-## Sentinel Report
-- **Status**: PASS | WARN | BLOCK
-- **Files Scanned**: [count]
-- **Findings**: [count by severity]
-
-### BLOCK (must fix)
-- `path/to/file.ts:42` — Hardcoded API key detected (pattern: sk-...)
-- `path/to/api.ts:15` — SQL injection: string concatenation in query
-
-### WARN (should fix)
-- `package.json` — lodash@4.17.20 has known prototype pollution (CVE-2021-23337)
-
-### INFO
-- `auth.ts:30` — Consider adding rate limiting to login endpoint
-
-### Verdict
-BLOCKED — 2 critical findings must be resolved before commit.
 ```
 
 ## Security Patterns (built-in)
@@ -87,6 +60,72 @@ HIGH_ENTROPY:   [A-Za-z0-9+/=]{40,}  (entropy > 4.5)
 SQL_INJECTION:  string concat/interpolation in SQL context
 XSS:            innerHTML, dangerouslySetInnerHTML, document.write
 CSRF:           form without CSRF token, missing SameSite cookie
+```
+
+## Executable Steps
+
+### Step 1 — Secret Scan
+Use `Grep` to search all changed files (or full codebase if no diff available) for secret patterns:
+- Patterns: `sk-`, `AKIA`, `ghp_`, `ghs_`, `-----BEGIN`, `password\s*=\s*["']`, `secret\s*=\s*["']`, `api_key\s*=\s*["']`, `token\s*=\s*["']`
+- Also scan for `.env` file contents committed directly (grep for lines matching `KEY=value` outside `.env` files)
+- Flag any string with entropy > 4.5 and length > 40 characters as HIGH_ENTROPY candidate
+
+Any match = **BLOCK**. Do not proceed to later steps if BLOCK findings exist — report immediately.
+
+### Step 2 — Dependency Audit
+Use `Bash` to run the appropriate audit command for the detected package manager:
+- npm/pnpm/yarn: `npm audit --json` (parse JSON, extract critical + high severity)
+- Python: `pip-audit --format=json` (if installed) or `safety check`
+- Rust: `cargo audit --json`
+- Go: `govulncheck ./...`
+
+Critical CVE (CVSS >= 9.0) = **BLOCK**. High CVE (CVSS 7.0–8.9) = **WARN**. Medium/Low = **INFO**.
+
+If audit tool is not installed, log **INFO**: "audit tool not found, skipping dependency check" — do NOT block on missing tooling.
+
+### Step 3 — OWASP Check
+Use `Read` to scan changed files for:
+- **SQL Injection**: string concatenation or interpolation inside SQL query strings (e.g., `"SELECT * FROM users WHERE id = " + userId`, f-strings with SQL). Flag = **BLOCK**
+- **XSS**: `innerHTML =`, `dangerouslySetInnerHTML`, `document.write(` with non-static content. Flag = **BLOCK**
+- **CSRF**: HTML `<form>` elements without CSRF token fields; `Set-Cookie` headers without `SameSite`. Flag = **WARN**
+- **Missing input validation**: new route handlers or API endpoints that directly pass `req.body` / `request.json()` to a database call without a validation schema. Flag = **WARN**
+
+### Step 4 — Permission Check
+Use `Grep` to scan for:
+- Destructive shell commands in scripts: `rm -rf /`, `DROP TABLE`, `DELETE FROM` without `WHERE`, `TRUNCATE`
+- File operations using absolute paths outside the project root (e.g., `/etc/`, `/usr/`, `C:\Windows\`)
+- Direct production database connection strings (e.g., `prod`, `production` in DB host names)
+
+Destructive command on production path = **BLOCK**. Suspicious path = **WARN**.
+
+### Step 5 — Report
+Aggregate all findings. Apply the verdict rule:
+- Any **BLOCK** finding → overall status = **BLOCK**. List all BLOCK items first.
+- No BLOCK but any **WARN** → overall status = **WARN**. Developer must acknowledge each WARN.
+- Only **INFO** → overall status = **PASS**.
+
+If status is BLOCK, output the report and STOP. Do not hand off to commit. The calling skill (`cook`, `preflight`, `deploy`) must halt until the developer fixes all BLOCK findings and re-runs sentinel.
+
+## Output Format
+
+```
+## Sentinel Report
+- **Status**: PASS | WARN | BLOCK
+- **Files Scanned**: [count]
+- **Findings**: [count by severity]
+
+### BLOCK (must fix before commit)
+- `path/to/file.ts:42` — Hardcoded API key detected (pattern: sk-...)
+- `path/to/api.ts:15` — SQL injection: string concatenation in query
+
+### WARN (must acknowledge)
+- `package.json` — lodash@4.17.20 has known prototype pollution (CVE-2021-23337, CVSS 7.4)
+
+### INFO
+- `auth.ts:30` — Consider adding rate limiting to login endpoint
+
+### Verdict
+BLOCKED — 2 critical findings must be resolved before commit.
 ```
 
 ## Cost Profile
