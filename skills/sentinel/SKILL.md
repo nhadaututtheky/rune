@@ -31,6 +31,7 @@ If status is BLOCK, output the report and STOP. Do not hand off to commit. The c
 
 - `scout` (L2): scan changed files to identify security-relevant code
 - `verification` (L3): run security tools (npm audit, pip audit, cargo audit)
+- `integrity-check` (L3): agentic security validation of .rune/ state files
 
 ## Called By (inbound)
 
@@ -151,6 +152,23 @@ Apply only if the framework is detected in changed files:
 - `pickle.loads(user_input)` or `eval(user_expression)` → **BLOCK**
 - `yaml.load()` without `Loader` arg (uses unsafe loader) → **WARN**
 
+### Step 4.7 — Agentic Security Scan
+
+If `.rune/` directory exists in the project, invoke `integrity-check` (L3) to scan for adversarial content:
+
+```
+REQUIRED SUB-SKILL: rune:integrity-check
+→ Invoke integrity-check on all .rune/*.md files + any state files in the commit diff.
+→ Capture: status (CLEAN | SUSPICIOUS | TAINTED), findings list.
+```
+
+Map integrity-check results to sentinel severity:
+- `TAINTED` → sentinel **BLOCK** (adversarial content in state files)
+- `SUSPICIOUS` → sentinel **WARN** (review recommended before commit)
+- `CLEAN` → no additional findings
+
+If `.rune/` directory does not exist, skip this step (log INFO: "no .rune/ state files, agentic scan skipped").
+
 ### Step 5 — Report
 Aggregate all findings. Apply the verdict rule:
 - Any **BLOCK** finding → overall status = **BLOCK**. List all BLOCK items first.
@@ -199,6 +217,7 @@ BLOCKED — 2 critical findings must be resolved before commit.
 | Skipping framework checks because "the framework handles it" | HIGH | CONSTRAINT blocks this rationalization — apply checks regardless |
 | Dependency audit tool missing → silently skipped | LOW | Report INFO "tool not found, skipping" — never skip silently |
 | Stopping after first BLOCK without aggregating all findings | MEDIUM | Complete ALL steps, aggregate ALL findings, then report — developer needs the full list |
+| Missing agentic security scan when .rune/ exists | HIGH | Step 4.7 is mandatory when .rune/ directory detected — never skip |
 
 ## Done When
 
