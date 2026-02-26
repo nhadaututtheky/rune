@@ -22,6 +22,16 @@
             "async": false
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.js' context-watch",
+            "async": true
+          }
+        ]
       }
     ],
     "Stop": [

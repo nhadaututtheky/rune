@@ -3,9 +3,15 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const cwd = process.cwd();
 const runeDir = path.join(cwd, '.rune');
+
+// Reset context-watch counter on session start (fresh context window)
+const hash = Buffer.from(cwd).toString('base64url').slice(0, 16);
+const counterFile = path.join(os.tmpdir(), `rune-context-watch-${hash}.json`);
+try { fs.unlinkSync(counterFile); } catch { /* no counter yet — fine */ }
 
 if (fs.existsSync(runeDir)) {
   const stateFiles = [
