@@ -39,7 +39,7 @@ function validatePack(packDir) {
     return issues;
   }
 
-  const content = fs.readFileSync(packFile, 'utf-8');
+  const content = fs.readFileSync(packFile, 'utf-8').replace(/\r\n/g, '\n');
 
   // Check frontmatter
   const frontmatter = parseFrontmatter(content);
