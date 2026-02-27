@@ -76,11 +76,11 @@ Check each constraint against the conversation evidence:
 
 ### Step 4 — Classify Violations
 
-```
-HARD-GATE violation   → BLOCK (skill says this is non-negotiable)
-Constraint violation  → WARN (skill says this is required but not fatal)
-Best practice skip    → INFO (recommended but optional)
-```
+| Violation Type | Severity | Meaning |
+|---------------|----------|---------|
+| HARD-GATE violation | BLOCK | Skill says this is non-negotiable |
+| Constraint violation | WARN | Skill says this is required but not fatal |
+| Best practice skip | INFO | Recommended but optional |
 
 ### Step 5 — Report
 

@@ -54,13 +54,13 @@ Classify each item:
 
 For each item, restate the technical requirement in your own words.
 
-```
-HARD-GATE: If ANY item is unclear → STOP entirely.
+<HARD-GATE>
+If ANY item is unclear → STOP entirely.
 Do not implement clear items while unclear ones remain.
 Items may be interconnected — partial understanding = wrong implementation.
 
 Ask: "I understand items [X]. Need clarification on [Y] before proceeding."
-```
+</HARD-GATE>
 
 ### Phase 3 — VERIFY
 

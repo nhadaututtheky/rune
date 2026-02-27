@@ -44,6 +44,7 @@ If unsure whether the test is wrong or the implementation is wrong → call `run
 - `debug` (L2): root cause found, ready to apply fix
 - `review` (L2): bug found during review, needs fixing
 - `surgeon` (L2): apply refactoring changes
+- `review-intake` (L2): apply fixes identified during structured review intake
 
 ## Cross-Hub Connections
 

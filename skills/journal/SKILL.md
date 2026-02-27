@@ -33,6 +33,7 @@ None — pure L3 state management utility.
 - `deploy` (L2): record deploy decision, rollback plan, and post-deploy status
 - `audit` (L2): save AUDIT-REPORT.md and record health trend entry
 - `incident` (L2): record incident timeline and postmortem
+- `skill-forge` (L2): record skill creation decisions and rationale
 
 ## Files Managed
 

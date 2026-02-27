@@ -37,6 +37,8 @@ Every review MUST cite at least one specific concern, suggestion, or explicit ap
 - `hallucination-guard` (L3): verify imports and API calls in reviewed code
 - `design` (L2): when UI anti-patterns suggest missing design system — recommend design skill invocation
 - `perf` (L2): when performance patterns detected in frontend diff
+- `review-intake` (L2): structured intake for complex multi-file reviews
+- `sast` (L3): static analysis security scan on reviewed code
 
 ## Called By (inbound)
 

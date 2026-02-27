@@ -289,6 +289,11 @@ This is OPT-IN — only activate if:
 - `hallucination-guard` (L3): Phase 6 — verify imports and API calls are real
 - `journal` (L3): Phase 7 — record architectural decisions made during feature
 - `session-bridge` (L3): Phase 8 — save context for future sessions
+- `audit` (L2): Phase 5 — project health audit when scope warrants it
+- `review-intake` (L2): Phase 5 — structured review intake for complex PRs
+- `sast` (L3): Phase 5 — static analysis security testing
+- `skill-forge` (L2): when new skill creation detected during cook flow
+- `worktree` (L3): Phase 4 — worktree isolation for parallel implementation
 
 ## Constraints
 

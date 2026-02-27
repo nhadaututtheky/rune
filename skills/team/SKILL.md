@@ -72,6 +72,9 @@ Standard team workflow with worktree isolation (Phases 1-5 as documented below).
 - `launch` (L1): delegate deployment/marketing when build is complete
 - `rescue` (L1): delegate legacy refactoring when rescue work detected
 - `integrity-check` (L3): verify cook report integrity before merge
+- `completion-gate` (L3): validate workstream completion claims against evidence
+- `constraint-check` (L3): audit HARD-GATE compliance across parallel streams
+- `worktree` (L3): create isolated worktrees for parallel cook instances
 
 ## Called By (inbound)
 

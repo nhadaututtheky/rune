@@ -42,6 +42,7 @@ If status is BLOCK, output the report and STOP. Do not hand off to commit. The c
 - `preflight` (L2): security sub-check in quality gate
 - `audit` (L2): Phase 2 full security audit
 - `incident` (L2): security dimension check during incident response
+- `review-intake` (L2): security scan on code submitted for structured review
 
 ## Severity Levels
 

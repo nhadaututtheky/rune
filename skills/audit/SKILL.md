@@ -29,6 +29,8 @@ Comprehensive project health audit across 8 dimensions (7 project + 1 mesh analy
 - `perf` (L2): Phase 4 — performance regression check
 - `db` (L2): Phase 5 — database health dimension (schema, migrations, indexes)
 - `journal` (L3): record audit date, overall score, and verdict
+- `constraint-check` (L3): audit HARD-GATE compliance across project skills
+- `sast` (L3): Phase 2 — deep static analysis (Semgrep, Bandit, ESLint security rules)
 
 ## Called By (inbound)
 

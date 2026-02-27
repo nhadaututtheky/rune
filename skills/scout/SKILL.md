@@ -113,6 +113,8 @@ None — pure scanner using Glob, Grep, Read, and Bash tools directly. Does not 
 - `db` (L2): find schema and migration files
 - `design` (L2): scan UI component library and design tokens
 - `perf` (L2): find hotpath files and performance-critical code
+- `review-intake` (L2): scan codebase for review context
+- `skill-forge` (L2): scan existing skills for patterns when creating new skills
 
 ## Output Format
 

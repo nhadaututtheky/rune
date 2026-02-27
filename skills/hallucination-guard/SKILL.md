@@ -35,6 +35,8 @@ Post-generation validation that verifies AI-generated code references actually e
 - `preflight` (L2): import verification sub-check
 - `review` (L2): during code review
 - `db` (L2): verify SQL syntax and ORM method calls are real
+- `review-intake` (L2): verify imports in code submitted for review
+- `skill-forge` (L2): verify imports in newly generated skill code
 
 ## Execution
 

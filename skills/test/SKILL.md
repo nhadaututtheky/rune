@@ -142,6 +142,7 @@ After GREEN phase, call `verification` to check coverage threshold (80% minimum)
 - `surgeon` (L2): verify refactored code
 - `launch` (L1): pre-deployment test suite
 - `safeguard` (L2): writing characterization tests for legacy code
+- `review-intake` (L2): write tests for issues identified during review intake
 
 ## Calls (outbound)
 

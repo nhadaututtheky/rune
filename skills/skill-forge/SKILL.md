@@ -32,7 +32,6 @@ The skill that builds skills. Applies Test-Driven Development to skill authoring
 ## Called By (inbound)
 
 - `cook` (L1): when the feature being built IS a new skill
-- `plan` (L2): when plan identifies need for a new reusable skill
 
 ## Workflow
 
@@ -45,10 +44,10 @@ Before writing anything, understand the landscape:
 3. **Identify layer** — L1 (orchestrator), L2 (workflow hub), L3 (utility)?
 4. **Identify mesh connections** — what calls this? What does this call?
 
-```
-HARD-GATE: If a skill with >70% overlap already exists → extend it, don't create new.
+<HARD-GATE>
+If a skill with >70% overlap already exists → extend it, don't create new.
 The mesh grows stronger by deepening connections, not by adding nodes.
-```
+</HARD-GATE>
 
 ### Phase 2 — RED (Baseline Test)
 
@@ -81,10 +80,10 @@ Run the scenario with a subagent WITHOUT the skill. Document:
 - **Rationalizations** — verbatim excuses for skipping discipline
 - **Failure point** — where exactly did it go wrong?
 
-```
-HARD-GATE: You MUST observe at least one failure before writing the skill.
+<HARD-GATE>
+You MUST observe at least one failure before writing the skill.
 No failure observed = you don't understand the problem well enough to write the solution.
-```
+</HARD-GATE>
 
 ### Phase 3 — GREEN (Write Minimal Skill)
 
@@ -166,10 +165,10 @@ Check:
 - Are all constraints respected under pressure?
 - Does the output match the defined format?
 
-```
-HARD-GATE: If agent still fails with skill loaded → skill is insufficient.
+<HARD-GATE>
+If agent still fails with skill loaded → skill is insufficient.
 Go back to Phase 3, strengthen the weak section. Do NOT ship.
-```
+</HARD-GATE>
 
 ### Phase 5 — REFACTOR (Close Loopholes)
 
@@ -227,13 +226,13 @@ git commit -m "feat: add [skill-name] — [one-line purpose]"
 
 When editing, not creating:
 
-```
-HARD-GATE: Same TDD cycle applies to edits.
+<HARD-GATE>
+Same TDD cycle applies to edits.
 1. Write a test that exposes the gap in the current skill
 2. Run baseline — confirm the skill fails on this scenario
 3. Edit the skill to address the gap
 4. Verify the edit fixes the gap WITHOUT breaking existing behavior
-```
+</HARD-GATE>
 
 "Just adding a section" is not an excuse to skip testing.
 

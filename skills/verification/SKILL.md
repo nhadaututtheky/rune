@@ -113,6 +113,7 @@ None — pure runner using Bash for all checks. Does not invoke other skills.
 - `safeguard` (L2): verify safety net is solid before refactoring
 - `db` (L2): run migration in test environment
 - `perf` (L2): run benchmark scripts if configured
+- `skill-forge` (L2): verify newly created skill passes lint/type/build checks
 
 ## Output Format
 

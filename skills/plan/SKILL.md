@@ -36,6 +36,7 @@ Create structured implementation plans from requirements. Plan is the strategic 
 - `brainstorm` (L2): when idea is selected and needs structuring into actionable plan
 - `rescue` (L1): plan refactoring strategy for legacy modules
 - User: `/rune plan <task>` direct invocation
+- `skill-forge` (L2): plan structure for new skill creation
 
 ## Cross-Hub Connections
 

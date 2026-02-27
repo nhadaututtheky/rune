@@ -23,7 +23,7 @@ const REQUIRED_SECTIONS = [
 const REQUIRED_FRONTMATTER = ['name:', 'description:', 'layer:', 'model:'];
 
 // Valid layer values
-const VALID_LAYERS = ['L1', 'L2', 'L3'];
+const VALID_LAYERS = ['L0', 'L1', 'L2', 'L3'];
 
 // Valid model values
 const VALID_MODELS = ['haiku', 'sonnet', 'opus'];

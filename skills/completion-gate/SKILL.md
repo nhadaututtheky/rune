@@ -37,7 +37,6 @@ None — pure validator. Reads evidence, produces verdict.
 
 - `cook` (L1): Phase 5d — validate completion claims before commit
 - `team` (L1): validate cook reports from parallel streams
-- `verification` (L3): cross-check with verification report
 
 ## Execution
 
