@@ -1,6 +1,6 @@
 ---
 name: audit
-description: Comprehensive project audit — security, dependencies, code quality, architecture, performance, infra, and docs. Delegates to specialist skills and generates a 7-dimension health score.
+description: Comprehensive project audit — security, dependencies, code quality, architecture, performance, infra, docs, and mesh analytics. Delegates to specialist skills and generates an 8-dimension health score.
 metadata:
   author: runedev
   version: "0.1.0"
@@ -13,7 +13,7 @@ metadata:
 
 ## Purpose
 
-Comprehensive project health audit across 7 dimensions. Delegates security scanning to `sentinel`, dependency analysis to `dependency-doctor`, and code complexity to `autopsy`, then directly audits architecture, performance, infrastructure, and documentation. Applies framework-specific checks (React/Next.js, Node.js, Python, Go, Rust, React Native/Flutter) based on detected stack. Produces a consolidated health score and prioritized action plan saved to `AUDIT-REPORT.md`.
+Comprehensive project health audit across 8 dimensions (7 project + 1 mesh analytics). Delegates security scanning to `sentinel`, dependency analysis to `dependency-doctor`, and code complexity to `autopsy`, then directly audits architecture, performance, infrastructure, and documentation. Applies framework-specific checks (React/Next.js, Node.js, Python, Go, Rust, React Native/Flutter) based on detected stack. Produces a consolidated health score and prioritized action plan saved to `AUDIT-REPORT.md`.
 
 ## Triggers
 
@@ -307,9 +307,54 @@ Apply **only** if the framework was detected in Phase 0. Skip entirely if not re
 
 ---
 
+### Phase 8: Mesh Analytics (H3 Intelligence)
+
+**Goal**: Surface insights about skill usage, chain patterns, and mesh health from accumulated metrics.
+
+**Data source**: `.rune/metrics/` directory (populated by hooks automatically).
+
+1. Check if `.rune/metrics/` exists. If not, emit INFO: "No metrics data yet — run a few cook sessions first."
+2. Read `.rune/metrics/skills.json` — extract per-skill invocation counts, last used dates
+3. Read `.rune/metrics/sessions.jsonl` — extract session count, avg duration, avg tool calls
+4. Read `.rune/metrics/chains.jsonl` — extract most common skill chains
+5. Read `.rune/metrics/routing-overrides.json` (if exists) — list active routing overrides
+
+Compute and report:
+- **Top 10 most-used skills** (by total invocations)
+- **Unused skills** (0 invocations across all tracked sessions) — potential dead nodes
+- **Most common skill chains** (top 5 patterns from chains.jsonl)
+- **Average session stats** (duration, tool calls, skill invocations)
+- **Active routing overrides** and their application count
+- **Mesh density check**: cross-reference invocation data with declared connections — skills that are declared as "Called By" but never actually invoked may indicate broken mesh paths
+
+**Propose routing overrides**: If patterns suggest inefficiency (e.g., debug consistently called 3+ times in a chain for the same session), propose a new routing override for user approval.
+
+Output as a section in the final audit report:
+
+```
+### Mesh Analytics
+| Skill | Invocations | Last Used | Chains Containing |
+|-------|-------------|-----------|-------------------|
+| cook  | 47          | 2026-02-28| 34                |
+| scout | 89          | 2026-02-28| 42                |
+| ...   | ...         | ...       | ...               |
+
+**Common Chains**:
+1. cook → scout → plan → test → fix → quality → verify (34x)
+2. debug → scout → fix → verification (12x)
+
+**Session Stats**: 23 sessions, avg 35min, avg 52 tool calls
+**Unused Skills**: [list or "none"]
+**Routing Overrides**: [count] active
+```
+
+**Shortcut**: `/rune metrics` invokes ONLY this phase, not the full 7-phase audit.
+
+---
+
 ### Final Report
 
-After all 7 phases complete:
+After all phases complete:
 
 Use `Write` to save `AUDIT-REPORT.md` to the project root with the full findings from all phases.
 
@@ -347,6 +392,7 @@ Apply confidence filtering: only report findings with >80% confidence. Consolida
 | Dependencies   |   ?/10   | [brief note]       |
 | Infrastructure |   ?/10   | [brief note]       |
 | Documentation  |   ?/10   | [brief note]       |
+| Mesh Analytics |   ?/10   | [brief note]       |
 | **Overall**    | **?/10** | **[verdict]**      |
 
 ### Phase Breakdown
@@ -359,6 +405,7 @@ Apply confidence filtering: only report findings with >80% confidence. Consolida
 | Performance    | [n]    |
 | Infrastructure | [n]    |
 | Documentation  | [n]    |
+| Mesh Analytics | [n]    |
 
 ### Top Priority Actions
 1. [action] — [file:line] — [why it matters]
@@ -376,7 +423,7 @@ Report saved to: AUDIT-REPORT.md
 
 ## Constraints
 
-1. MUST complete all 7 phases — if any phase is skipped, state explicitly which phase and why
+1. MUST complete all 8 phases (Phase 8 may report "no data" if .rune/metrics/ doesn't exist yet) — if any phase is skipped, state explicitly which phase and why
 2. MUST delegate Phase 1 to dependency-doctor and Phase 2 to sentinel — no manual replacements
 3. MUST apply confidence filter — only report findings with >80% confidence; consolidate similar issues
 4. MUST include at least 3 positive findings — an audit with no positives is incomplete
@@ -391,7 +438,7 @@ Report saved to: AUDIT-REPORT.md
 | Discovery Gate | Phase 0 project profile completed before Phase 1 | Run scout and read config files first |
 | Security Gate | sentinel report received before assembling final report | Invoke rune:sentinel — do not skip |
 | Deps Gate | dependency-doctor report received before assembling final report | Invoke rune:dependency-doctor — do not skip |
-| Report Gate | All 7 phases completed before writing AUDIT-REPORT.md | Complete all phases, note skipped ones |
+| Report Gate | All 8 phases completed before writing AUDIT-REPORT.md | Complete all phases, note skipped ones |
 
 ## Sharp Edges
 
@@ -404,7 +451,7 @@ Report saved to: AUDIT-REPORT.md
 
 ## Done When
 
-- All 7 phases completed (or explicitly marked N/A with reason)
+- All 8 phases completed (or explicitly marked N/A with reason)
 - Health score calculated from actual file reads per dimension (not estimated)
 - At least 3 positive findings and 3 improvement areas documented
 - AUDIT-REPORT.md written to project root

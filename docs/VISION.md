@@ -200,16 +200,18 @@ Rune operates on three time horizons. The roadmap is intentionally non-prescript
 
 **Constraint:** Core mesh (L1-L3) is frozen at ≤48 skills. Growth happens in L4.
 
-### H3 — Intelligence (Next)
+### H3 — Intelligence ✅ COMPLETE
 
 **Goal:** Make the mesh self-aware and self-improving.
 
-- Mesh analytics: which skill chains are used most? Which skills have the worst failure rates?
-- Adaptive routing: if `debug` consistently fails for a specific error type, `cook` learns to route to `problem-solver` first
-- Skill performance metrics: cost per invocation, success rate, average chain depth
-- Community skill sharing: users can publish and install community L4 packs via `claude plugin add @community/rune-xxx`
+- ✅ Mesh analytics: `metrics-collector` hook captures skill invocations, `post-session-reflect` flushes to `.rune/metrics/`, `audit` Phase 8 surfaces insights via `/rune metrics`
+- ✅ Adaptive routing: `skill-router` Step 0 reads `.rune/metrics/routing-overrides.json`, `cook` Phase 8 auto-generates overrides from failure patterns
+- ✅ Skill performance metrics: `skills.json` tracks invocations, phase outcomes, quality gate results, debug loops per skill
+- ✅ Community skill sharing: `/rune pack install/list/remove/create` commands, `validate-pack.js` script, `COMMUNITY-PACKS.md` guide, `onboard` discovers installed packs
 
-**Constraint:** H3 features require runtime infrastructure that doesn't exist yet. Do not design for H3 during H1.
+**Implementation**: Zero new L1-L3 skills added. 1 new hook (`metrics-collector`), 3 modified hooks, 4 extended skills (`audit`, `cook`, `skill-router`, `onboard`), 2 new commands (`/rune metrics`, `/rune pack`).
+
+**Constraint:** Core mesh remains frozen at 48 skills. Growth happens in L4 and community packs.
 
 ---
 

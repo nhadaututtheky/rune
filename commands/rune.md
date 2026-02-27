@@ -70,6 +70,13 @@ Route to the appropriate Rune skill based on the action:
 ### Utilities (L3) — Deps
 - `/rune dependency-doctor` — Invoke the rune:dependency-doctor skill for dependency management
 
+### Intelligence (H3)
+- `/rune metrics` — Show mesh analytics from .rune/metrics/ (runs audit Phase 8 only)
+- `/rune pack list` — List installed L4 packs (core + community)
+- `/rune pack install <git-url>` — Install a community L4 pack from Git
+- `/rune pack remove <name>` — Remove a community L4 pack
+- `/rune pack create <name>` — Scaffold a new L4 pack using skill-forge
+
 ### Quick Actions
 - `/rune status` — Show current project state from .rune/ files
 

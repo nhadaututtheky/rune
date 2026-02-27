@@ -2,6 +2,9 @@
 // Lightweight tool call counter — detects context pressure and suggests rune:context-engine
 // Runs as PreToolUse hook on Edit/Write (high-cost operations)
 //
+// H3 Intelligence: also tracks tool type distribution and session start timestamp
+// for metrics aggregation at session end.
+//
 // Uses a temp file counter (survives across hook invocations within same session).
 // Zero overhead: just reads/increments a number. No token cost.
 
@@ -19,17 +22,25 @@ const FIRST_WARNING = 40;
 const REPEAT_INTERVAL = 20;
 const CRITICAL_THRESHOLD = 80;
 
+// Detect tool type from environment
+const toolName = process.env.CLAUDE_TOOL_NAME || 'unknown';
+
 // Read current state
-let state = { count: 0, lastWarning: 0 };
+let state = { count: 0, lastWarning: 0, sessionStart: null, toolCounts: {} };
 try {
   const raw = fs.readFileSync(counterFile, 'utf-8');
   state = JSON.parse(raw);
+  // Ensure toolCounts exists (upgrade from old format)
+  if (!state.toolCounts) state.toolCounts = {};
+  if (!state.sessionStart) state.sessionStart = new Date().toISOString();
 } catch {
   // First run or corrupted — start fresh
+  state.sessionStart = new Date().toISOString();
 }
 
-// Increment
+// Increment total and per-tool counters
 state.count += 1;
+state.toolCounts[toolName] = (state.toolCounts[toolName] || 0) + 1;
 
 // Check thresholds
 const count = state.count;

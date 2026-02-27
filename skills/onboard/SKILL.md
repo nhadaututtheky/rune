@@ -156,6 +156,8 @@ Based on the detected tech stack from Step 2, recommend relevant L4 extension pa
 
 If 0 packs match: omit this section from the report (no suggestions is correct for a generic project).
 
+**Community pack discovery**: Also check if `.rune/community-packs/registry.json` exists. If it does, list installed community packs alongside core pack suggestions. If community packs are installed, include them under a `### Installed Community Packs` subsection.
+
 If ≥1 packs match: include in the Onboard Report under a `### Suggested L4 Packs` section:
 
 ```

@@ -227,7 +227,7 @@ This is OPT-IN — only activate if:
 
 ## Phase 8: BRIDGE
 
-**Goal**: Save context for future sessions.
+**Goal**: Save context for future sessions and record metrics for mesh analytics.
 
 **REQUIRED SUB-SKILL**: Use `rune:session-bridge`
 
@@ -237,7 +237,18 @@ This is OPT-IN — only activate if:
    - Any trade-offs made
 3. Update `.rune/progress.md` with completed task
 4. Update `.rune/conventions.md` if new patterns were established
-5. Mark Phase 8 as `completed`
+5. **Write skill-sourced metrics** to `.rune/metrics/skills.json`:
+   - Read the existing file (or create `{ "version": 1, "updated": "<now>", "skills": {} }`)
+   - Under the `cook` key, update:
+     - `phases`: increment `run` or `skip` count for each phase that was run/skipped this session
+     - `quality_gate_results`: increment `preflight_pass`/`preflight_fail`, `sentinel_pass`/`sentinel_block`, `review_pass`/`review_issues` based on Phase 5 outcomes
+     - `debug_loops`: increment `total` by number of debug-fix loops in Phase 4, update `max_per_session` if this session exceeded it
+   - Write the updated file back
+6. **Adaptive error recovery** (H3 Intelligence):
+   - If Phase 4 had 3 debug-fix loops (max) for a specific error pattern, write a routing override to `.rune/metrics/routing-overrides.json`:
+     - Format: `{ "id": "r-<timestamp>", "condition": "<error pattern>", "action": "route to problem-solver before debug", "source": "auto", "active": true }`
+   - Max 10 active rules — if exceeded, remove oldest inactive rule
+7. Mark Phase 8 as `completed`
 
 ## Error Recovery
 

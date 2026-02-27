@@ -33,7 +33,24 @@ This is L0 — it sits above L1 orchestrators. It doesn't do work itself; it ens
 
 ## Workflow
 
-### Step 0 — STOP before responding
+### Step 0 — Check Routing Overrides (H3 Adaptive Routing)
+
+Before standard routing, check if adaptive routing rules exist:
+
+1. Use `Read` on `.rune/metrics/routing-overrides.json`
+2. If the file exists and has active rules, scan each rule's `condition` against the current user intent
+3. If a rule matches:
+   - Apply the override action (e.g., "route to problem-solver before debug")
+   - Log: "Adaptive routing: applying rule [id] — [action]"
+4. If no file exists or no rules match, proceed to standard routing (Step 1)
+
+**Override constraints**:
+- Overrides MUST NOT bypass layer discipline (L3 cannot call L1)
+- Overrides MUST NOT skip quality gates (sentinel, preflight, verification)
+- Overrides MUST NOT route to non-existent skills
+- If an override seems wrong, announce it and let user decide to keep or disable
+
+### Step 0.5 — STOP before responding
 
 Before generating ANY response (including clarifying questions), the agent MUST:
 
