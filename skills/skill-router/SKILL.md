@@ -164,6 +164,25 @@ These DO NOT need skill routing:
 - Single-line factual answers with no code impact
 - Resuming an already-active skill workflow
 
+## Output Format
+
+```
+## Routing Decision
+- **Intent**: [classified user intent]
+- **Skill**: rune:[skill-name]
+- **Confidence**: HIGH | MEDIUM | LOW
+- **Override**: [routing override applied, if any]
+- **Reason**: [one-line justification for skill selection]
+```
+
+For multi-skill chains:
+```
+## Routing Chain
+1. rune:[skill-1] — [purpose]
+2. rune:[skill-2] — [purpose]
+3. rune:[skill-3] — [purpose]
+```
+
 ## Constraints
 
 1. MUST check routing table before EVERY response that involves code, files, or technical decisions

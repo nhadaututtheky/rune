@@ -197,6 +197,10 @@ Output the following structure:
 - Score basis: -10 per critical CVE, -5 per high CVE, -2 per outdated major, -1 per outdated minor
 ```
 
+## Output Format
+
+Dependency Report with package manager, counts, CVE findings by severity, outdated packages by risk level, unused dependencies, ordered update plan, and health score (0-100). See Step 7 Report above for full template.
+
 ## Constraints
 
 1. MUST check for known vulnerabilities — not just version freshness

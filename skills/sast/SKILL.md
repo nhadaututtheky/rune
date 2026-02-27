@@ -153,6 +153,10 @@ INFO (informational):
 | Bandit | N/A | — | — (not Python) |
 ```
 
+## Output Format
+
+SAST Report with status (PASS/WARN/BLOCK), tools run, files scanned, findings by severity (BLOCK/WARN/INFO), and tool coverage table. See Step 5 Report above for full template.
+
 ## Constraints
 
 1. MUST run all available tools for the detected language — not just one

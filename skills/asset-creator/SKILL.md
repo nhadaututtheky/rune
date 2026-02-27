@@ -122,6 +122,10 @@ Output the following:
 
 This skill creates CODE-based assets (SVG/CSS/HTML). It does not generate raster images (PNG/JPG) directly — those require screenshotting the generated HTML files using browser-pilot.
 
+## Output Format
+
+Structured report with generated file paths, usage instructions (HTML snippets), and design tokens used. See Step 5 Report above for full template.
+
 ## Constraints
 
 1. MUST confirm output format and dimensions before generating

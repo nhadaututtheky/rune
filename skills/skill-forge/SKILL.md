@@ -253,6 +253,34 @@ Techniques:
 - One excellent example > three mediocre ones
 - Inline code only if <50 lines, otherwise separate file
 
+## Output Format
+
+```
+## Skill Forge Report
+- **Skill**: [name] (L[layer])
+- **Action**: CREATE | EDIT
+- **Status**: SHIPPED | NEEDS_WORK | BLOCKED
+
+### Baseline Test
+- Scenario: [test scenario description]
+- Result WITHOUT skill: [observed failure]
+- Result WITH skill: [observed success or remaining gap]
+
+### Quality Checklist
+- Format: [pass/fail count]
+- Content: [pass/fail count]
+- Architecture: [pass/fail count]
+
+### Files Created/Modified
+- skills/[name]/SKILL.md — [created | modified]
+- docs/ARCHITECTURE.md — [updated | skipped]
+- CLAUDE.md — [updated | skipped]
+
+### Mesh Impact
+- New connections: [count] ([list of skills])
+- Bidirectional check: PASS | FAIL
+```
+
 ## Constraints
 
 1. MUST run baseline test BEFORE writing skill — no skill without observed failure

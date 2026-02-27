@@ -130,6 +130,10 @@ mcp__plugin_playwright_playwright__browser_close()
 
 This step is mandatory even if earlier steps fail. Use a try-finally pattern in your reasoning.
 
+## Output Format
+
+Structured Browser Report with task status, page info, accessibility findings, interaction log, console errors, screenshots, and summary. See Step 6 Report above for full template.
+
 ## Constraints
 
 1. MUST close browser when done — Step 7 is non-optional even if earlier steps fail

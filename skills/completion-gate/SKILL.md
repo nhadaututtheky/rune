@@ -115,6 +115,10 @@ ANY claim UNCONFIRMED        → overall UNCONFIRMED (BLOCK — provide evidence
   (no CONTRADICTED)
 ```
 
+## Output Format
+
+Completion Gate Report with status (CONFIRMED/UNCONFIRMED/CONTRADICTED), claim validation table, gaps, and verdict. See Step 4 Report above for full template.
+
 ## Constraints
 
 1. MUST check every completion claim against actual tool output — not agent narrative

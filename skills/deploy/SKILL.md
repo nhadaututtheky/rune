@@ -133,6 +133,10 @@ Output the deploy report:
 
 If any step failed, include the error output and recommended next action.
 
+## Output Format
+
+Deploy Report with platform, status (success/failed/rollback), deployed URL, build time, and checks (tests, security, HTTP, visual, monitoring). See Step 6 Report above for full template.
+
 ## Constraints
 
 1. MUST verify tests + sentinel pass before deploying — non-negotiable

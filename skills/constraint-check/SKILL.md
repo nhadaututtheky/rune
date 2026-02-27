@@ -128,6 +128,10 @@ Key HARD-GATEs across skills that constraint-check audits:
 | debug | 3-fix escalation | Fix attempt counter |
 | brainstorm | No implementation before approval | User message check |
 
+## Output Format
+
+Constraint Check Report with status (COMPLIANT/VIOLATIONS_FOUND/CRITICAL_VIOLATION), HARD-GATE violations, constraint violations, compliance summary table, and remediation steps. See Step 5 Report above for full template.
+
 ## Constraints
 
 1. MUST check all HARD-GATEs for every invoked skill — not just the ones that seem relevant

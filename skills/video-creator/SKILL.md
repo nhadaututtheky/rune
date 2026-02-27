@@ -164,6 +164,10 @@ Then output a summary to the calling skill:
 
 This skill creates PLANS for video production. Actual recording and editing must be done by a human or a dedicated screen recording tool.
 
+## Output Format
+
+Video Plan saved to `marketing/video-plan.md` with script, storyboard, shot list, assets checklist, and platform notes. Summary report with scene/shot counts and estimated recording time. See Step 6 Report above for full template.
+
 ## Constraints
 
 1. MUST confirm video parameters (duration, resolution, format) before generating
